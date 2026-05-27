@@ -17,7 +17,7 @@ A prototype payment system, personalised point of sales terminal built in a simp
 
 ## Diagram 
 
-![image alt](https://github.com/andrewisoko/POS_terminal/blob/27b5cc236455cc3a24338349976ba750aedd09af/Architecture.pdf)
+![ image alt](https://github.com/andrewisoko/POS_terminal/blob/27b5cc236455cc3a24338349976ba750aedd09af/Architecture.pdf)
 
 ## Structure 
 
@@ -26,34 +26,35 @@ A prototype payment system, personalised point of sales terminal built in a simp
 - **Web Terminal**: the web terminal is a digital representation of the point of sales machine as mobile device camera to process card data (card as qr code), it follows basic procedures of real processing payment machines and generates a token when created.
 
     **IMPORTANT**
-    -  The web terminal must be created to initiate the transactions as it contains the post request for the main endpoint of the app:
-      ```ts
-const response = await firstValueFrom(
-  this.httpService.post(
-    'http://localhost:3002/api.gateway/',
-    {
-      pan: cardDetails.pan,
-      amount: cardDetails.amount,
-      currency: cardDetails.currency,
-      expiry: cardDetails.expiry,
-      merchant: cardDetails.merchant,
-      timestamp: cardDetails.timestamp,
-      customer: cardDetails.customer,
-      account: cardDetails.account,
-      terminal: terminal.id,
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${terminal.acc_token}`,
+- The web terminal must be created to initiate the transactions as it contains the post request for the main endpoint of the app:
+
+  ```ts
+  const response = await firstValueFrom(
+    this.httpService.post(
+      'http://localhost:3002/api.gateway/',
+      {
+        pan: cardDetails.pan,
+        amount: cardDetails.amount,
+        currency: cardDetails.currency,
+        expiry: cardDetails.expiry,
+        merchant: cardDetails.merchant,
+        timestamp: cardDetails.timestamp,
+        customer: cardDetails.customer,
+        account: cardDetails.account,
+        terminal: terminal.id,
       },
-    },
-  ),
-);
+      {
+        headers: {
+          Authorization: `Bearer ${terminal.acc_token}`,
+        },
+      },
+    ),
+  );
 
-return response.data;
+  return response.data;
+  ```
 
-```
-- the token is attached to the authorisation header for the security layers of the services participating in the orchestra.
+- The token is attached to the authorisation header for the security layers of the services participating in the orchestra.
 
 ## Orchestra
 
@@ -61,63 +62,45 @@ return response.data;
 - Saga pattern to provide a robust fallback in case transaction fails.
 - Encryption of sensitive data such as PAN and EXPIRY DATE.
 
-  **Acquirer service**
+### Acquirer service
 
--  Once the Risk Engine approves the transaction, the Payment Gateway (orchestrator) forwards the authorization request to the Acquirer Bank Service.
--  Fee Calculation: Determines the interchange fee and any acquirer-specific markup. The merchant will later receive the transaction amount minus these fees.
--  Merchant Net Amount: Computes the net amount that will eventually be credited to the merchant’s account (used for settlement, not authorization).
-- Message Formatting: Converts the internal REST/JSON request into the standard financial messaging format used by card networks – typically ISO 8583 (or ISO 20022 for modern implementations). This includes populating data elements such as:Primary Account Number (PAN) – tokenized or encrypted, Transaction amount and currency, Merchant category code (MCC), Terminal ID,  etc...
-
-- Opens a secure session (Over TCP)  and sends the ISO 8583 authorization request.
--  The Acquirer constructs an ISO 8583 message. ISO 8583 defines a binary message with a fixed header and variable-length data fields (data elements). For an authorization request, the message type identifier (MTI) is typically 0100 (Authorization Request).
+- Once the Risk Engine approves the transaction, the Payment Gateway orchestrator forwards the authorization request to the Acquirer Bank Service.
+- Fee calculation determines the interchange fee and any acquirer-specific markup. The merchant later receives the transaction amount minus these fees.
+- Merchant net amount computes the net amount that will eventually be credited to the merchant's account, used for settlement, not authorization.
+- Message formatting converts the internal REST/JSON request into the standard financial messaging format used by card networks, typically ISO 8583 or ISO 20022. This includes fields such as PAN, transaction amount and currency, MCC, and Terminal ID.
+- The Acquirer opens a secure TCP session and sends the ISO 8583 authorization request.
+- In ISO 8583, the MTI for an authorization request is typically `0100`.
 
 ```ts
+acquirer.connect(5000, 'localhost', () => {
+  const data = {
+    0: '0200',
+    2: rawPan,
+    3: '000000',
+    4: isoAmount,
+    11: stanString,
+    14: isoExpDate,
+    41: acqData.terminalid.padEnd(8, ' '),
+    43: acqData.merchant.padEnd(40, ' '),
+    45: acqData.fullName,
+    49: '826',
+  };
 
- acquirer.connect(5000,'localhost',() => {
-            
-            let data = {
-                0: '0200', /*financial transaction request (response is 0210) */
-                2: rawPan,
-                3: '000000', /*processing code*/
-                4: isoAmount,
-                11: stanString, /*System Trace Audit Number.*/
-                14: isoExpDate,
-                41: acqData.terminalid.padEnd(8, ' '),
-                43: acqData.merchant.padEnd(40, " "),
-                45: acqData.fullName,
-                49: "826" /*this is the ISO 4217 numeric currency code ecquivalent of GBP */
-            };
-            
-            
-            let iso = new iso8583(data);
-            
+  const iso = new iso8583(data);
+  const isoBuffer = iso.getBufferMessage();
 
-            const isoBuffer = iso.getBufferMessage();
-            if (isoBuffer.error) throw new Error(`ISO8583 encoding error: ${isoBuffer.error}`);
-            
+  if (isoBuffer.error) throw new Error(`ISO8583 encoding error: ${isoBuffer.error}`);
 
-            // add 2-byte length header
-            const len = Buffer.alloc(2);
-            len.writeUInt16BE(isoBuffer.length);
+  const len = Buffer.alloc(2);
+  len.writeUInt16BE(isoBuffer.length);
 
-    
-            const finalMessage = Buffer.concat([len, isoBuffer]);
-    
-            acquirer.write(finalMessage);
+  const finalMessage = Buffer.concat([len, isoBuffer]);
+  acquirer.write(finalMessage);
+});
 
-        })
-        
-
-        acquirer.on('data', (data) => {
-        console.log('Response:', data.toString('hex'));
-        });
-        
-           } catch (error) {
-            console.log('Error acquirer service at', error)
-        }
-    }
-
-
+acquirer.on('data', (data) => {
+  console.log('Response:', data.toString('hex'));
+});
 ```
 
 -  ***the Issuer Service***: After receiving the authorization request from the Acquirer via the Card Network—performs the core financial validation and recording within the issuing bank's domain. This step is entirely internal to the issuer and does not involve the Transaction Service (which remains waiting for a response).
