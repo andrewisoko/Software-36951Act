@@ -24,6 +24,7 @@ export class TerminalJwtStrategy extends PassportStrategy(Strategy) {
       if (certPayload.role !== Role.TERMINAL) throw new UnauthorizedException('Invalid terminal token');
           
     return {
+      
       serialnumber: certPayload.serialnumber,
       signature:certPayload.signature,
       issuer:certPayload.issuer,

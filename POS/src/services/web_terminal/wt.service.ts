@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common"
+import { Injectable, NotFoundException } from "@nestjs/common"
 import { JwtService } from "@nestjs/jwt"
 import { Terminal } from "./entity/wt.entity";
 import { InjectRepository } from "@nestjs/typeorm";
@@ -20,7 +20,7 @@ export class WebTerminal{
     ){}
 
     generateSerialNum(){
-        const randomNum = Math.floor(Math.random() * 100000000);
+        const randomNum = (Math.floor(Math.random() * 100000000) + 100);
         return randomNum
       }
 
@@ -41,53 +41,66 @@ export class WebTerminal{
     }
 
    
-    async CreateWT(
-        cardDetails:Partial<FullRequestDto>
-    ){
+  async CreateWT() {
+    const serialNumber = this.generateSerialNum();
+    const signature = this.generateSignature();
 
-        const serialNumber = this.generateSerialNum();
-        // console.log(serialNumber)
-        const signature = this.generateSignature();
-        
-        const certTerminal = {
-            serialNumber: serialNumber,
-            signature: signature,
-            issuer:'ISSUER BANK TUTORIAL',
-            subject:'TEST MERCHANT LONDON GB',
-            role: Role.TERMINAL
-        };
-        const terminal_token = this.jwtService.sign(certTerminal);
+    const certTerminal = {
+        serialNumber,
+        signature,
+        issuer: 'Tutorial Bank',
+        subject: 'Merchant Tutorial',
+        role: Role.TERMINAL,
+    };
 
-        const terminal = await this.TerminalRepository.create(certTerminal);
-        terminal.acc_token = terminal_token
-        
-        await this.TerminalRepository.save(terminal);
+    //
+    const terminal = this.TerminalRepository.create(certTerminal);
 
-        // if camera scans payload
+    
+    const saved = await this.TerminalRepository.save(terminal);
+
+    const terminal_token = this.jwtService.sign({
+      
+        serialNumber: saved.serial_number,
+        role: saved.role,
+    });
+
+    saved.acc_token = terminal_token;
+    await this.TerminalRepository.save(saved);
+
+    return {
+        terminal_token,
+    };
+}
+
+
+
+    async terminalReqTransaction( terminalId:string, amount:number, transactionDetails:Partial<FullRequestDto>){
+
+        const wbTerminal = await this.TerminalRepository.findOne({where:{id:terminalId}});
+        if( !wbTerminal ) throw new NotFoundException('temrnial not found')
 
         const response = await firstValueFrom( this.httpService.post(
             'http://localhost:3002/api.gateway/',
             {
-                pan: cardDetails.pan,
-                amount: cardDetails.amount,
-                currency: cardDetails.currency,
-                expiry: cardDetails.expiry,
-                merchant: cardDetails.merchant,
-                timestamp: cardDetails.timestamp,
-                customer: cardDetails.customer,
-                account: cardDetails.account,
-                terminal:terminal.id
+                pan: transactionDetails.pan,
+                amount: amount,
+                currency: transactionDetails.currency,
+                expiry: transactionDetails.expiry,
+                merchant: transactionDetails.merchant,
+                timestamp: transactionDetails.timestamp,
+                customer: transactionDetails.customer,
+                account: transactionDetails.account,
+                terminal:wbTerminal.id
             },
             {
                 headers:{
-                    Authorization:`Bearer ${terminal.acc_token}`
+                    Authorization:`Bearer ${wbTerminal.acc_token}`
                 },
             },
         ))
 
-
         return response.data
-
     }
 
 }

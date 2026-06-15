@@ -3,6 +3,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { UnauthorizedException } from '@nestjs/common';
+import { Payload } from '@nestjs/microservices';
 
 
 @Injectable()
@@ -18,13 +19,14 @@ export class cardJwtStrategy extends PassportStrategy(Strategy, 'card-jwt') {
   }
 
 
-    async validate(cardPayload: any) {
+    async validate(transactionDetails: any) {
 
 
  
         return {
-            pan:cardPayload.pan,
-            expiry:cardPayload.expiry,
+            terminalId: transactionDetails.terminal,
+            pan:transactionDetails.pan,
+            expiry:transactionDetails.expiry,
         }
   }
 }

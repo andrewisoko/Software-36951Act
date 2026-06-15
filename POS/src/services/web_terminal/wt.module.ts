@@ -7,13 +7,16 @@ import { WebTerminal } from "./wt.service";
 import { Terminal } from "./entity/wt.entity";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { HttpModule, HttpService } from "@nestjs/axios";
+import { PaymentDraft } from "./payment_draft/entity/payment.draft";
+import { PaymentDraftService } from "./payment_draft/payment.draft.service";
+
 
 /* initial auth approach will be a simple jwt authorisation. The app initially verifies if web POS terminal contains the token.*/
 
 @Module({
     imports:[
         HttpModule,
-        TypeOrmModule.forFeature([Terminal]),
+        TypeOrmModule.forFeature([Terminal,PaymentDraft]),
         PassportModule,
         JwtModule.registerAsync({
             imports:[ConfigModule],
@@ -28,7 +31,8 @@ import { HttpModule, HttpService } from "@nestjs/axios";
     ], 
     controllers:[WebTerminalController],
     providers:[
-        WebTerminal
+        WebTerminal,
+        PaymentDraftService
     ]
 })
 
