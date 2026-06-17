@@ -3,7 +3,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { UnauthorizedException } from '@nestjs/common';
-import { Role } from '../web_terminal/entity/wt.entity';
+import { Role } from '../../virtual_terminal/entity/wt.entity';
 
 
 

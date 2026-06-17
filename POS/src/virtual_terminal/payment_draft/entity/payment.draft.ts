@@ -1,4 +1,4 @@
-// payment-draft.entity.ts
+
 import {
   Entity,
   PrimaryGeneratedColumn,

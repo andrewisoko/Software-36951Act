@@ -5,14 +5,14 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { Role } from "./entity/wt.entity";
 import { HttpService } from "@nestjs/axios";
-import { FullRequestDto } from "src/api_gateway/config/dto/request.data.dto";
+import { FullRequestDto } from "src/virtual_terminal/payment_draft/dto/request.data.dto";
 import { firstValueFrom } from "rxjs";
 
 
 
 
 @Injectable()
-export class WebTerminal{
+export class VirtualTerminalService{
     constructor(
         @InjectRepository(Terminal) private readonly TerminalRepository: Repository<Terminal>,
         private readonly httpService:HttpService,
@@ -72,35 +72,5 @@ export class WebTerminal{
         terminal_token,
     };
 }
-
-
-
-    async terminalReqTransaction( terminalId:string, amount:number, transactionDetails:Partial<FullRequestDto>){
-
-        const wbTerminal = await this.TerminalRepository.findOne({where:{id:terminalId}});
-        if( !wbTerminal ) throw new NotFoundException('temrnial not found')
-
-        const response = await firstValueFrom( this.httpService.post(
-            'http://localhost:3002/api.gateway/',
-            {
-                pan: transactionDetails.pan,
-                amount: amount,
-                currency: transactionDetails.currency,
-                expiry: transactionDetails.expiry,
-                merchant: transactionDetails.merchant,
-                timestamp: transactionDetails.timestamp,
-                customer: transactionDetails.customer,
-                account: transactionDetails.account,
-                terminal:wbTerminal.id
-            },
-            {
-                headers:{
-                    Authorization:`Bearer ${wbTerminal.acc_token}`
-                },
-            },
-        ))
-
-        return response.data
-    }
 
 }

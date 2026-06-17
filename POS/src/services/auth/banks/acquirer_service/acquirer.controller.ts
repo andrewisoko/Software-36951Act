@@ -4,7 +4,7 @@ import { UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../../authGuard';
 import { RolesGuard } from '../../roles/roles.guard';
 import { Roles } from '../../roles/roles.decorators';
-import { Role } from 'src/services/web_terminal/entity/wt.entity';
+import { Role } from 'src/virtual_terminal/entity/wt.entity';
 
 
 @Controller('acquirer')

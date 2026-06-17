@@ -8,7 +8,7 @@ import { TokenisationController } from "../tokenisation_service/tokenisation.con
 import { TransactionService } from "./transaction.service";
 import { EncryptSecurity } from "./encryption/encrypt.security";
 import { Party } from "../party_service/entity/party.entity";
-import { Terminal } from "../web_terminal/entity/wt.entity";
+import { Terminal } from "../../virtual_terminal/entity/wt.entity";
 import { RuleEngine } from "../rule_engine_service/entity/rule.engine.entity";
 import { AuthModule } from "../auth/auth.module";
 import { ConfigService } from "@nestjs/config";
@@ -53,7 +53,6 @@ import { AccountSchema } from "../account_service/document/account.doc";
         TransactionService,
         EncryptSecurity,
         AccountService,
-        ConfigService,  
     ],
 })
 

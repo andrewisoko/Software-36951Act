@@ -3,10 +3,10 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Transaction, TRANSACTION_STATUS } from "./entity/transaction.entity";
 import { Repository } from "typeorm";
 import { Party } from "../party_service/entity/party.entity";
-import { Terminal } from "../web_terminal/entity/wt.entity";
+import { Terminal } from "../../virtual_terminal/entity/wt.entity";
 import { EncryptSecurity } from "./encryption/encrypt.security";
 import { HttpService } from "@nestjs/axios";
-import { FullRequestDto } from "src/api_gateway/config/dto/request.data.dto";
+import { FullRequestDto } from "src/virtual_terminal/payment_draft/dto/request.data.dto";
 import { firstValueFrom } from 'rxjs';
 import { RuleEngine } from "../rule_engine_service/entity/rule.engine.entity";
 import { IssuerService } from "../auth/banks/issuer_service/issuer.service";
@@ -66,16 +66,25 @@ export class TransactionService{
     /*----------------------------*/
     /*----------------------------*/
 
-
+//    terminal:wbTerminal.id,
+//                 amount: transactionDetails.amount,
+//                 currency: transactionDetails.currency,
+//                 pan: transactionDetails.pan,
+//                 expiry: transactionDetails.expiry,
+//                 merchant: transactionDetails.merchant,
+//                 timestamp: transactionDetails.timestamp,
+//                 customer: transactionDetails.customer,
+//                 account: transactionDetails.account,
+            
     async createTransaction({
-        pan,
-        expiry,
+        terminal,
         amount,
         currency,
+        pan,
+        expiry,
         merchant,
         customer,
         account,
-        terminal,
 
     }:FullRequestDto
 
@@ -161,15 +170,15 @@ export class TransactionService{
     
             const transaction = await this.createTransaction({
                 
-                pan:fullRequestData.pan,
-                expiry:fullRequestData.expiry,
+                terminal:fullRequestData.terminal,
                 amount:fullRequestData.amount,
                 currency:fullRequestData.currency,
+                pan:fullRequestData.pan,
+                expiry:fullRequestData.expiry,
                 merchant:fullRequestData.merchant,
                 timestamp:fullRequestData.timestamp,
                 customer:fullRequestData.customer,
                 account:fullRequestData.account,
-                terminal:fullRequestData.terminal,
             })
 
             console.log('data', fullRequestData)
@@ -185,7 +194,7 @@ export class TransactionService{
 
             const validateTerminalResponse = await firstValueFrom(
             this.httpService.get(
-                'http://localhost:3002/api.gateway/auth/validation-terminal/',
+                'http://localhost:3002/auth/validation-terminal/',
                 {
                 headers: {
                     Authorization: `Bearer ${terminalToken}`,
@@ -205,7 +214,7 @@ export class TransactionService{
             const tokenResponse = await firstValueFrom(
 
             this.httpService.post(
-                'http://localhost:3002/api.gateway/token/pan-tokenisation/',
+                'http://localhost:3002/token/pan-tokenisation/',
                 { panEncrypt: panEncryptParse },
                  {
                 headers: {
@@ -224,7 +233,7 @@ export class TransactionService{
 
             const ruleEngine = await firstValueFrom(
                     this.httpService.post(
-                    'http://localhost:3002/api.gateway/rule-engine/checks/',
+                    'http://localhost:3002/rule-engine/checks/',
                     {
                         token: panToken,
                         amount: fullRequestData.amount,
@@ -251,7 +260,7 @@ export class TransactionService{
 
             const acquirerService = await firstValueFrom(
                 this.httpService.post(
-                     'http://localhost:3002/api.gateway/acquirer/bank/',
+                     'http://localhost:3002/acquirer/bank/',
                     {
                         amount:transaction.amount,
                         pan: panToken,
@@ -290,7 +299,7 @@ export class TransactionService{
 
             if (approvedTrn.status === TRANSACTION_STATUS.DECLINED ){
                 const notificationService = await firstValueFrom(
-                    this.httpService.post('http://localhost:3002/api.gateway/notification/kafka-message',
+                    this.httpService.post('http://localhost:3002/notification/kafka-message',
                         {
                             message: "transaction declined",
                             customer:fullRequestData.customer,
@@ -313,7 +322,7 @@ export class TransactionService{
         
                 
                     const notificationService = await firstValueFrom(
-                        this.httpService.post('http://localhost:3002/api.gateway/notification/kafka-message',
+                        this.httpService.post('http://localhost:3002/notification/kafka-message',
                             {
                                 message: "Transaction details",
                                 customer:fullRequestData.customer,
@@ -333,7 +342,7 @@ export class TransactionService{
         
                     const settlementEngine = await firstValueFrom(
                         this.httpService.post(
-                            'http://localhost:3002/api.gateway/settlement/engine-updates',
+                            'http://localhost:3002/settlement/engine-updates',
                             {id:transaction.id},
                                 {
                                 headers: {
@@ -347,7 +356,7 @@ export class TransactionService{
             }
 
         } catch (error) {
-            console.log(`Error: ${error}`)
+            console.log(`Error at transaction orchestra: ${error}`)
         }
     }
     

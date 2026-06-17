@@ -1,4 +1,4 @@
-import { Terminal } from "src/services/web_terminal/entity/wt.entity";
+import { Terminal } from "src/virtual_terminal/entity/wt.entity";
 import { Party } from "src/services/party_service/entity/party.entity";
 import { Entity,PrimaryColumn,Column, ManyToOne,OneToMany,CreateDateColumn, OneToOne } from "typeorm";
 import { RuleEngine } from "src/services/rule_engine_service/entity/rule.engine.entity";

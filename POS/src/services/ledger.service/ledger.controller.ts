@@ -4,7 +4,7 @@ import { UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/authGuard';
 import { Roles } from '../auth/roles/roles.decorators';
 import { RolesGuard } from '../auth/roles/roles.guard';
-import { Role } from '../web_terminal/entity/wt.entity';
+import { Role } from '../../virtual_terminal/entity/wt.entity';
 import { AuthGuard } from '@nestjs/passport';
 
 

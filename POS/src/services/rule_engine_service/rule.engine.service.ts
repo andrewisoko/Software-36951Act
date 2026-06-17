@@ -3,7 +3,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { EngineCheckRequest } from "../orchestrator/transaction.service";
 import { Repository } from "typeorm";
 import { Transaction } from "../orchestrator/entity/transaction.entity";
-import { Terminal } from "../web_terminal/entity/wt.entity";
+import { Terminal } from "../../virtual_terminal/entity/wt.entity";
 import { Party } from "../party_service/entity/party.entity";
 
 

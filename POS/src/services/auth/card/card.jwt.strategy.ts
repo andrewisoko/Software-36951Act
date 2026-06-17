@@ -24,9 +24,11 @@ export class cardJwtStrategy extends PassportStrategy(Strategy, 'card-jwt') {
 
  
         return {
-            terminalId: transactionDetails.terminal,
-            pan:transactionDetails.pan,
-            expiry:transactionDetails.expiry,
+       
+          pan: transactionDetails.pan,
+          expiry: transactionDetails.expiry,
+          customer:transactionDetails.customer,
+          account:transactionDetails.account,
         }
   }
 }

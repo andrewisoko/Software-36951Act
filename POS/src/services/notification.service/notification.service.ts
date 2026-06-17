@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { ClientKafka } from '@nestjs/microservices';
-import { AppModule } from 'src/api_gateway/config/app.module';
+import { POSModule } from 'src/virtual_terminal/pos.module';
 import { Transport, MicroserviceOptions } from '@nestjs/microservices';
 import { Inject } from '@nestjs/common';
 import { NotificationModule } from './notification.module';

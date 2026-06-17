@@ -11,7 +11,7 @@ import { AccountService} from 'src/services/account_service/account.service';
 import { firstValueFrom } from 'rxjs';
 import { HttpService } from '@nestjs/axios';
 import { JwtService } from '@nestjs/jwt';
-import { Role } from 'src/services/web_terminal/entity/wt.entity';
+import { Role } from 'src/virtual_terminal/entity/wt.entity';
 import { conditions } from './issuer_rules/issuer.rules.service';
 import { EncryptSecurity } from 'src/services/orchestrator/encryption/encrypt.security';
 import { SettlementService } from 'src/services/settlement/settlement_engine/settlement.service';
@@ -151,7 +151,7 @@ export class IssuerService implements OnModuleInit {
 
         const accountChecks = await firstValueFrom(
                 this.httpService.post(
-                'http://localhost:3002/api.gateway/account/account-checks',
+                'http://localhost:3002/account/account-checks',
                 {
                     amount:amount,
                     transaction:transaction,
@@ -219,25 +219,31 @@ export class IssuerService implements OnModuleInit {
     ){
                  
             const maskPan:string = pan.toString().slice(-4).padStart(12,'*')
+
+            try {
+                const ledgerDoubleEntry = await firstValueFrom(
+                   this.httpService.post(
+                   'http://localhost:3002/ledger/double-entry',
+                   {
+                       account_id: account.id,
+                       transaction_id:transaction.id,
+                       amount:amount,
+                       currency:"GBP",
+                       eventTimestamp:eventTimeStamp,
+                       maskedPan:maskPan,
+                   },
+                   {
+                     headers:{
+                        Authorization: `Bearer ${issuerToken}`
+                     }
+                   }
+                   )) 
+               console.log("Ledger service response", ledgerDoubleEntry.data)
+                
+            } catch (error) {
+                console.log('failed to call ledger service', error)
+            }
             
-            const ledgerDoubleEntry = await firstValueFrom(
-               this.httpService.post(
-               'http://localhost:3002/api.gateway/ledger/double-entry',
-               {
-                   account_id: account.id,
-                   transaction_id:transaction.id,
-                   amount:amount,
-                   currency:"GBP",
-                   eventTimestamp:eventTimeStamp,
-                   maskedPan:maskPan,
-               },
-               {
-                 headers:{
-                    Authorization: `Bearer ${issuerToken}`
-                 }
-               }
-               )) 
-           console.log("Ledger service response", ledgerDoubleEntry.data)
     }
 
 
@@ -459,7 +465,7 @@ export class IssuerService implements OnModuleInit {
                 
 
                } catch (error) {
-                    console.log('Error occurred at', error )
+                    console.log('Error occurred at Issuer Service', error )
                }
 
              

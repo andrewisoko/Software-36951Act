@@ -1,6 +1,6 @@
 import { Controller,Body,Post } from '@nestjs/common';
 import { NotificationService } from './notification.service';
-import { Role } from '../web_terminal/entity/wt.entity';
+import { Role } from '../../virtual_terminal/entity/wt.entity';
 import { Roles } from '../auth/roles/roles.decorators';
 import { JwtAuthGuard } from '../auth/authGuard';
 import { UseGuards } from '@nestjs/common';

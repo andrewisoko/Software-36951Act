@@ -3,7 +3,7 @@ import { JwtAuthGuard } from "src/services/auth/authGuard";
 import { RolesGuard } from "src/services/auth/roles/roles.guard";
 import { TokenisationService } from "./tokenisation.service";
 import { Roles } from "../auth/roles/roles.decorators";
-import { Role, Terminal } from "../web_terminal/entity/wt.entity";
+import { Role, Terminal } from "../../virtual_terminal/entity/wt.entity";
 
 
 @Controller('token')
