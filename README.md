@@ -14,44 +14,70 @@ A prototype payment system, personalised point of sales terminal built in a simp
 - PostgreSQL
 - MongoDB
 - Kafka
+- 
+## POS SECRECT KEY CONFIGURATION FILES:
+
+POS.MODULE.TS: JWT_CARD_KEY
+TRANSACTION.MODULE.TS: JWT_KEY
+AUTH.MODULE.TS: JWT_KEY
+VT.MODULE.TS: JWT_KEY
+
+TERMINAL.JWT.STRATEGY.TS: JWT_KEY
+ISSUER.JWT.STRATEGY.TS: JWT_KEY
+CONTRACT.JWT.STRATEGY.TS: CONTRACT_KEY
+
 
 ## Diagram 
 
 ![ image alt](https://github.com/andrewisoko/POS_terminal/blob/27b5cc236455cc3a24338349976ba750aedd09af/Architecture.pdf)
 
+
+## CARD TO POS COMMUNICATION DIAGRAM EXPLANATION
+
+....
+
 ## Structure 
 
 - main.ts contains the main endpoint which has been renamed with api gateway to represent its core routing usage. technical choice chosen for the sake of simplicity and avoiding over engineering.
 - The config repository contains the app.service.ts which redirects the request to the transaction orchestra. file path: ...\POS\src\api_gateway\config\app.service.ts
-- **Web Terminal**: the web terminal is a digital representation of the point of sales machine as mobile device camera to process card data (card as qr code), it follows basic procedures of real processing payment machines and generates a token when created.
+- **Virtual Terminal**: the virtual terminal is a digital representation of the point of sales machine as mobile device camera to process card data (card as qr code), it follows basic procedures of real processing payment machines and generates a token when created.
 
     **IMPORTANT**
 - The web terminal must be created to initiate the transactions as it contains the post request for the main endpoint of the app:
+  api.gateway.service.ts
 
   ```ts
-  const response = await firstValueFrom(
-    this.httpService.post(
-      'http://localhost:3002/api.gateway/',
-      {
-        pan: cardDetails.pan,
-        amount: cardDetails.amount,
-        currency: cardDetails.currency,
-        expiry: cardDetails.expiry,
-        merchant: cardDetails.merchant,
-        timestamp: cardDetails.timestamp,
-        customer: cardDetails.customer,
-        account: cardDetails.account,
-        terminal: terminal.id,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${terminal.acc_token}`,
-        },
-      },
-    ),
-  );
 
-  return response.data;
+      async RedirectToOrchestra( 
+      
+           transactionDetails:Partial<FullRequestDto>
+        ){
+
+        const virtualTerminal = await this.terminalRepository.findOne({where:{id:transactionDetails.terminal}});
+        if( !virtualTerminal ) throw new NotFoundException('temrnial not found')
+
+        const response = await firstValueFrom( this.httpService.post(
+            'http://localhost:3002/transaction/orchestra',
+            {
+                terminal:virtualTerminal.id,
+                amount: transactionDetails.amount,
+                currency: transactionDetails.currency,
+                pan: transactionDetails.pan,
+                expiry: transactionDetails.expiry,
+                merchant: transactionDetails.merchant,
+                timestamp: transactionDetails.timestamp,
+                customer: transactionDetails.customer,
+                account: transactionDetails.account,
+            },
+            {
+                headers:{
+                    Authorization:`Bearer ${virtualTerminal.acc_token}`
+                },
+            },
+        ))
+
+        return response.data
+    }
   ```
 
 - The token is attached to the authorisation header for the security layers of the services participating in the orchestra.
