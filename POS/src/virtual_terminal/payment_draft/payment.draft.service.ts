@@ -34,7 +34,7 @@ export class PaymentDraftService {
     return this.draftRepo.save(draft);
   }
 
-  async POSentryPoint(draftId: string, cardToken: string) {
+  async attachCard(draftId: string, cardToken: string) {
     const draft = await this.draftRepo.findOne({
       where: { id: draftId },
     });

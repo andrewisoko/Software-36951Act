@@ -15,18 +15,6 @@ export class ApiGatewayService {
     private readonly httpService: HttpService,
   ){}
   
-  // async redirectTransaction(body:FullRequestDto) {
-
-  //   const response = await firstValueFrom(
-  //     this.httpService.post(
-  //       'http://localhost:3002/api.gateway/transaction/orchestra',
-  //       body,
-  //       {}
-  //   )
-  // );
-
-  //   return response.data;
-  // }
 
 
       async RedirectToOrchestra( 

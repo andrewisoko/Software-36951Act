@@ -8,11 +8,11 @@ import { PaymentDraftService } from './payment.draft.service';
 export class PaymentDraftController {
   constructor(private readonly service: PaymentDraftService) {}
 
-  @Post()
-  POSentrycrePoint(
+  @Post('attach-card')
+  attachCard(
     @Body() dto: {id: string, cardToken: string;}
   ) {
-    return this.service.POSentryPoint(dto.id, dto.cardToken);
+    return this.service.attachCard(dto.id, dto.cardToken);
   }
 
   @Post('create')
