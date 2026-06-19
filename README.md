@@ -29,12 +29,12 @@ CONTRACT.JWT.STRATEGY.TS: CONTRACT_KEY
 
 ## Diagram 
 
-![ image alt](Architecture.png)
+![ image alt]()
 
 
 ## CARD TO POS COMMUNICATION DIAGRAM EXPLANATION
 
-![ image alt](Card_to_POS.png)
+![ image alt]()
 
 ## Structure 
 
