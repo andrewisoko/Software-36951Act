@@ -36,9 +36,10 @@ export class IssuerRulesController {
   @Post('contract')
   async createContract( @Body() body: IssuerRulesInput ) {
 
-    const expiryTime = body.time_agreement[body.time_agreement.length -1];
-    console.log(body)
-
+    // const expiryTime = body.time_agreement[body.time_agreement.length -1];
+    const expiryTime = body.time_agreement.at(-1) ?? ''
+    
+    
     if ( new Date(Date.now()) > new Date(expiryTime) ){
       throw new Error ('contract expired.');
     } 
