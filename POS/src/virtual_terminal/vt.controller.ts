@@ -29,7 +29,7 @@ export class VirtualTerminalController{
 
     constructor(private readonly webTerminal:VirtualTerminalService){}
 
-    @UseGuards(AuthGuard('card-jwt'))
+    // @UseGuards(AuthGuard('card-jwt'))
     @Get('create-terminal')
     createWT(){
         return this.webTerminal.CreateWT()

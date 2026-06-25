@@ -2,7 +2,6 @@ import { Injectable, NotFoundException, UnauthorizedException } from "@nestjs/co
 import { InjectRepository } from "@nestjs/typeorm";
 import { EngineCheckRequest } from "../orchestrator/transaction.service";
 import { Repository } from "typeorm";
-import { Transaction } from "../orchestrator/entity/transaction.entity";
 import { Terminal } from "../../virtual_terminal/entity/wt.entity";
 import { Party } from "../party_service/entity/party.entity";
 
@@ -11,7 +10,7 @@ import { Party } from "../party_service/entity/party.entity";
 
 @Injectable()
 export class RuleEngineService{
-    // @InjectRepository(Transaction) private readonly transactionRepository:Repository<Transaction>;
+   
     @InjectRepository(Terminal) private readonly terminalRepository:Repository<Terminal>;
     @InjectRepository(Party) private readonly partyRepository:Repository<Party>;
     

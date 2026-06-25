@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { PaymentDraft } from './entity/payment.draft';
+import { PaymentDraft } from './entity/payment.draft.entity';
 import { firstValueFrom } from 'rxjs';
 import { HttpService } from '@nestjs/axios';
 import { ParamsTokenFactory } from '@nestjs/core/pipes';
@@ -31,6 +31,7 @@ export class PaymentDraftService {
       status: 'AWAITING_CARD_SCAN',
       expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 2 min TTL
     });
+    console.log('draft creaded', draft)
     return this.draftRepo.save(draft);
   }
 
@@ -50,10 +51,12 @@ export class PaymentDraftService {
       await this.draftRepo.save(draft);
       throw new BadRequestException('Draft expired');
     }
+    console.log('succefully passed first step')
 
     draft.status = 'PROCESSING';
     draft.cardToken = cardToken;
 
+    console.log('cardToken',cardToken)
 
     const scannedValue = cardToken;
 
@@ -79,6 +82,8 @@ export class PaymentDraftService {
         )
 
     )
+
+    console.log('request sent to orchestra')
 
     if(transactionRequest.status !== 201 ){
         draft.status = 'FAILED';

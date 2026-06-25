@@ -23,7 +23,7 @@ import { NotificationModule } from 'src/services/notification.service/notificati
 import { MongooseModule } from '@nestjs/mongoose';
 import { AccountModule } from 'src/services/account_service/account.module';
 import { cardJwtStrategy } from 'src/services/auth/card/card.jwt.strategy';
-import { PaymentDraft } from 'src/virtual_terminal/payment_draft/entity/payment.draft';
+import { PaymentDraft } from 'src/virtual_terminal/payment_draft/entity/payment.draft.entity';
 import { PaymentDraftService } from 'src/virtual_terminal/payment_draft/payment.draft.service';
 import { PaymentDraftController } from 'src/virtual_terminal/payment_draft/payment.draft.controller';
 

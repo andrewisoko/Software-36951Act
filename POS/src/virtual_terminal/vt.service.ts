@@ -49,7 +49,7 @@ export class VirtualTerminalService{
         serialNumber,
         signature,
         issuer: 'Tutorial Bank',
-        subject: 'Merchant Tutorial',
+        subject: 'TRANSACT RETAIL',
         role: Role.TERMINAL,
     };
 
@@ -57,20 +57,19 @@ export class VirtualTerminalService{
     const terminal = this.TerminalRepository.create(certTerminal);
 
     
-    const saved = await this.TerminalRepository.save(terminal);
+    const terminalUpdated = await this.TerminalRepository.save(terminal);
 
     const terminal_token = this.jwtService.sign({
       
-        serialNumber: saved.serial_number,
-        role: saved.role,
+        serialNumber: terminalUpdated.serial_number,
+        role: terminalUpdated.role,
     });
 
-    saved.acc_token = terminal_token;
-    await this.TerminalRepository.save(saved);
+    terminalUpdated.acc_token = terminal_token;
+    await this.TerminalRepository.save(terminalUpdated);
 
-    return {
-        terminal_token,
-    };
-}
+    return terminalUpdated;
+
+    }
 
 }
