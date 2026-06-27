@@ -11,7 +11,8 @@ export enum TRANSACTION_STATUS {
     APPROVED = "approved",
     DECLINED = "declined",
     SETTLED = "settled",
-    REFUNDED = "refunded"
+    REFUNDED = "refunded",
+    FAILED = 'FAILED'
 }
 
 @Entity("transaction")
@@ -37,7 +38,7 @@ export class Transaction {
     @Column({
         type:"enum",
         enum:TRANSACTION_STATUS,
-        default:TRANSACTION_STATUS.PENDING,
+        default:TRANSACTION_STATUS.DECLINED,
     })
         status: TRANSACTION_STATUS;
 
@@ -50,7 +51,7 @@ export class Transaction {
     @Column( 'text' )
         pan_encrypt:string;
  
-    @Column('varchar', {length: 50 ,default:"TEST MERCHANT LONDON GB"})
+    @Column('varchar', {length: 50 ,default:"TRANSACT RETAIL"})
         merchant:string;
 
     @OneToMany(() => Ledger, ledger => ledger.transaction)

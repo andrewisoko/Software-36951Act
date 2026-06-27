@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
+import { Injectable,  NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { EngineCheckRequest } from "../orchestrator/transaction.service";
+import { RuleEngineCheckRequest } from "../orchestrator/transaction.service";
 import { Repository } from "typeorm";
 import { Terminal } from "../../virtual_terminal/entity/wt.entity";
 import { Party } from "../party_service/entity/party.entity";
@@ -8,44 +8,41 @@ import { Party } from "../party_service/entity/party.entity";
 
 
 
+
 @Injectable()
 export class RuleEngineService{
-   
-    @InjectRepository(Terminal) private readonly terminalRepository:Repository<Terminal>;
-    @InjectRepository(Party) private readonly partyRepository:Repository<Party>;
+   constructor(
+       
+       @InjectRepository(Terminal) private readonly terminalRepository:Repository<Terminal>,
+       @InjectRepository(Party) private readonly partyRepository:Repository<Party>,
+   ){}
     
 
     async enginechecks(
-        engineCheckRequest: EngineCheckRequest
+        engineCheckRequest: RuleEngineCheckRequest
         ){
         
         let approved:boolean= false;
-
-        try {
-
-            const checkCustomerID = await this.partyRepository.findOne({ where:{ id:engineCheckRequest.customerID }});
-            if (! checkCustomerID ) throw new NotFoundException("customerID not found");
-
-            const checkMerchant = await this.terminalRepository.findOne({ where:{subject: engineCheckRequest.merchant }});
-            if (! checkMerchant ) throw new NotFoundException("merchant not found");
-
-            if ( engineCheckRequest.accountStatus !== "active" ) throw new UnauthorizedException("account not active")
+        
+   
+            // console.log('merchant name',engineCheckRequest.merchant )
+            const checkCustomerID = await this.partyRepository.findOne({ where:{ full_name:engineCheckRequest.customer }});
+            if (! checkCustomerID ) throw new NotFoundException("rule engine: customerID not found");
+    
+            const terminal = await this.terminalRepository.findOne({ where:{id: engineCheckRequest.terminalID }});
+            if (! terminal ) throw new NotFoundException("rule engine: terminal not found");
+    
+            if(terminal.subject!== engineCheckRequest.merchant) throw new UnauthorizedException('rule engine: merchant error')
+    
+            if ( engineCheckRequest.accountStatus !== "active" ) throw new UnauthorizedException("rule engine: account not active")
             
-            if( engineCheckRequest.amount >= 150000 ) throw new UnauthorizedException("Invalid amount");  /*balance check to be added.*/
-            if ( engineCheckRequest.currency !== "GBP" ) throw new UnauthorizedException("Invalid currency");
-
+            if( engineCheckRequest.amount > 150000 ) throw new UnauthorizedException("rule engine: Invalid amount");  /*balance check to be added.*/
+            if ( engineCheckRequest.currency !== "GBP" ) throw new UnauthorizedException("rule engine: Invalid currency");
+    
             approved = true
             const action = approved ? "approved": "declined";
             
-
+    
             return {"action": action};
-             
-            
-        } catch (error) {
-            console.log( `Error: ${error}` );
-            
-        }
-
-    };
-
-};
+                }
+            };

@@ -2,6 +2,10 @@ import { IsString, IsNumber, IsOptional, IsIn } from 'class-validator';
 
 export class FullRequestDto {
 
+
+  @IsString()
+  key: string;
+
   @IsString()
   pan: string;
 

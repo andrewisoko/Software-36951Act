@@ -23,13 +23,16 @@ import { InjectModel } from "@nestjs/mongoose";
 //--------------//
 
 
-export interface EngineCheckRequest {
+export interface RuleEngineCheckRequest {
+
     panToken: string;
     amount: number;
     currency: string;
     merchant: string;
     accountStatus: "active" | "blocked" | "closed";
-    customerID: string;
+    terminalID:string
+    customer:string;
+    
 }
 
 export interface AcquirerRequest {
@@ -42,6 +45,20 @@ export interface AcquirerRequest {
     fullName:string
     stan:number
 }
+
+export interface NotificationToDeviceApp {
+
+    key: string,
+    message: string,
+    customer:string,
+    amount:number,
+    status:string
+    currency:string,
+    merchant:string,
+    timestamp:string
+}
+
+/////////////////////////////
 
 
 @Injectable()
@@ -86,19 +103,25 @@ export class TransactionService{
         customer,
         account,
 
-    }:FullRequestDto
+    }:Partial<FullRequestDto>
 
     ){
         try {
+            
+
+            let customerData = await this.partyRepository.findOne({ where:{ full_name:customer }})
+            if(! customerData ){
+                console.log("Party not found")
+
+                    const user = await this.partyRepository.create({
+                    full_name:customer
+                })
+                
+                await this.partyRepository.save(user)
+                customerData = user
+            }
 
             
-            const user = await this.partyRepository.create({
-                id:customer
-            })
-            await this.partyRepository.save(user)
-
-            const customerData = await this.partyRepository.findOne({ where:{ id:customer }})
-            if(! customerData ) throw new NotFoundException("Party not found");
        
             const accountData = await this.accountModel.findOne({ _id:account })
             if( ! accountData ) throw new NotFoundException("Account not found");
@@ -106,8 +129,8 @@ export class TransactionService{
             const terminalData = await this.terminalRepository.findOne({ where:{ id:terminal }})
             if(! terminalData ) throw new NotFoundException("terminal not found");
 
-            const encryptedPan = JSON.stringify(this.encryption.encrypt(pan));
-            const encryptExpiryDate = JSON.stringify(this.encryption.encrypt(expiry));
+            const encryptedPan = JSON.stringify(this.encryption.encrypt( pan ??'Not found' ));
+            const encryptExpiryDate = JSON.stringify(this.encryption.encrypt(expiry ??'Not found'));
 
             const transaction = await this.transactionRepository.create({
 
@@ -122,6 +145,7 @@ export class TransactionService{
 
                 })
                 await this.transactionRepository.save(transaction)
+                
 
                 await this.accountModel.updateOne(
                     { _id: account },
@@ -164,11 +188,14 @@ export class TransactionService{
     fullRequestData:FullRequestDto,
     ){      
 
+        let transaction;
+        let terminalToken;
+
         try {
             
             /* data from gateway-api to transaction service first hop*/
     
-            const transaction = await this.createTransaction({
+            transaction = await this.createTransaction({
                 
                 terminal:fullRequestData.terminal,
                 amount:fullRequestData.amount,
@@ -185,12 +212,12 @@ export class TransactionService{
             if (! transaction) throw new Error ("failed transaction")
 
             const panEncryptParse = JSON.parse(transaction.pan_encrypt);
-            const terminalToken = transaction.terminal.acc_token
+            terminalToken = transaction.terminal.acc_token
          
             let panToken;
 
 
-            /* transansaction service calls merchant service (Auth) */
+            /* transansaction service calls merchant service (Auth / no service logic) */
 
             const validateTerminalResponse = await firstValueFrom(
             this.httpService.get(
@@ -207,6 +234,8 @@ export class TransactionService{
             const stan = this.createStan()
             transaction.stan = stan
             await this.transactionRepository.save(transaction)
+
+
 
             /* transansaction service calls tokenise token */
 
@@ -227,8 +256,14 @@ export class TransactionService{
 
             panToken = tokenResponse.data;
             // console.log(panToken);
+
+
+        //////////STOP ORCHESTRA IF ERROR//////////////////
+
+            if( tokenResponse.status !== 201 ) return;
+        
+        ///////////////////////////////////////////////////
             
-           
             /* transansaction service calls rule engine. */
 
             const ruleEngine = await firstValueFrom(
@@ -240,7 +275,10 @@ export class TransactionService{
                         currency: fullRequestData.currency,
                         merchant: fullRequestData.merchant,
                         accountStatus: (await this.accountModel.findById(fullRequestData.account))?.status ?? fullRequestData.accountStatus,
-                        customerID: fullRequestData.customerID,
+                        terminalID:fullRequestData.terminal,
+                        customer: fullRequestData.customer,
+
+                        
                     },
                     {
                      headers: {
@@ -254,6 +292,15 @@ export class TransactionService{
             const decision = ruleEngine.data["action"]
             const ruleEngineTable = await this.createRuleEngineTable(decision,transaction);
             transaction.rule_engine = ruleEngineTable;
+
+
+        //////////STOP ORCHESTRA IF ERROR//////////////////
+
+            console.log('rule engine status', ruleEngine.status)
+
+             if( ruleEngine.status !== 201 ) return;
+        
+        ///////////////////////////////////////////////////
 
 
             /*banks talking to each other */
@@ -280,6 +327,11 @@ export class TransactionService{
                 )
             )
 
+        //////////STOP ORCHESTRA IF ERROR//////////////////
+
+            if( acquirerService.status !== 201 ) return;
+        
+        ///////////////////////////////////////////////////
             
             const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
             
@@ -292,72 +344,89 @@ export class TransactionService{
             for (let i = 0; i < 20; i++) {
                 await sleep(500);
                 approvedTrn = await this.transactionRepository.findOne({ where:{ id:transaction.id } });
-                if (approvedTrn && approvedTrn.status !== TRANSACTION_STATUS.PENDING) break;
+                if (approvedTrn && approvedTrn.status !== TRANSACTION_STATUS.DECLINED) break;
             }
             if ( !approvedTrn ) throw new NotFoundException( "Transaction not found" );
-            console.log("transaction status after issuer:", approvedTrn.status);
 
-            if (approvedTrn.status === TRANSACTION_STATUS.DECLINED ){
-                const notificationService = await firstValueFrom(
-                    this.httpService.post('http://localhost:3002/notification/kafka-message',
-                        {
-                            message: "transaction declined",
-                            customer:fullRequestData.customer,
-                            amount:fullRequestData.amount,
-                            currency:fullRequestData.currency,
-                            merchant:fullRequestData.merchant,
-                            timestamp:fullRequestData.timestamp,
-                        },
-                        {
-                            headers: {
-                            Authorization: `Bearer ${terminalToken}`,
-                            },
-                        },
+            if( approvedTrn.status === TRANSACTION_STATUS.APPROVED){
+                    try {
                         
-                    )
-                );
-                throw new Error();
-
-            } else if( approvedTrn.status === TRANSACTION_STATUS.APPROVED){
-        
-                
-                    const notificationService = await firstValueFrom(
-                        this.httpService.post('http://localhost:3002/notification/kafka-message',
-                            {
-                                message: "Transaction details",
-                                customer:fullRequestData.customer,
-                                amount:fullRequestData.amount,
-                                currency:fullRequestData.currency,
-                                merchant:fullRequestData.merchant,
-                                timestamp:fullRequestData.timestamp,
-                            },
-                            {
-                                headers: {
-                                Authorization: `Bearer ${terminalToken}`,
-                                },
-                            },
-                            
-                        )
-                    )
-        
-                    const settlementEngine = await firstValueFrom(
-                        this.httpService.post(
-                            'http://localhost:3002/settlement/engine-updates',
-                            {id:transaction.id},
+                        const notificationService = await firstValueFrom(
+                            this.httpService.post('http://localhost:3002/notification/device-app-message',
                                 {
-                                headers: {
-                                Authorization: `Bearer ${terminalToken}`,
+                                    key:fullRequestData.key,
+                                    message: "Transaction details",
+                                    customer:fullRequestData.customer,
+                                    amount:fullRequestData.amount,
+                                    status: approvedTrn.status,
+                                    currency:fullRequestData.currency,
+                                    merchant:fullRequestData.merchant,
+                                    timestamp:fullRequestData.timestamp,
                                 },
-                            },
-        
+                                {
+                                    headers: {
+                                    Authorization: `Bearer ${terminalToken}`,
+                                    },
+                                },
+                                
+                            )
                         )
-                    )
+
+                        //////////STOP ORCHESTRA IF ERROR//////////////////
+
+                             if( notificationService.status !== 201 ) return;
+        
+                        ///////////////////////////////////////////////////
+            
+                        const settlementEngine = await firstValueFrom(
+                            this.httpService.post(
+                                'http://localhost:3002/settlement/engine-updates',
+                                {id:transaction.id},
+                                    {
+                                    headers: {
+                                    Authorization: `Bearer ${terminalToken}`,
+                                    },
+                                },
+            
+                            )
+                        )
+                    } catch (error) {
+                       console.log('error after transaction approved', error) 
+                       transaction.status = TRANSACTION_STATUS.PENDING
+                       await this.transactionRepository.save(transaction)
+                       
+                    }
+
+            
         
             }
 
         } catch (error) {
             console.log(`Error at transaction orchestra: ${error}`)
+
+            const notificationService = await firstValueFrom(
+                this.httpService.post('http://localhost:3002/notification/device-app-message',
+                    {
+                        key:fullRequestData.key,
+                        message: 'transaction failed',
+                        customer:fullRequestData.customer,
+                        amount:fullRequestData.amount,
+                        status: 'declined',
+                        currency:'GBP',
+                        merchant:fullRequestData.merchant,
+                        timestamp:fullRequestData.timestamp,
+                    },
+                    {
+                        headers: {
+                        Authorization: `Bearer ${terminalToken}`,
+                        },
+                    },
+                    
+                )
+            )
+
+
+            }
         }
-    }
     
-}
+    }

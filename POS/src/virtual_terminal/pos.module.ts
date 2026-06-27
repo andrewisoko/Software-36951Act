@@ -1,4 +1,4 @@
-import { Inject, Module } from '@nestjs/common';
+import {  Module } from '@nestjs/common';
 import { ApiGatewayModule } from 'src/api_gateway/api.gateway.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import {ConfigModule} from '@nestjs/config';

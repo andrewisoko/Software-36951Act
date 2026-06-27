@@ -4,6 +4,8 @@ import { RolesGuard } from "src/services/auth/roles/roles.guard";
 import { Roles } from "../auth/roles/roles.decorators";
 import { Role} from "../../virtual_terminal/entity/wt.entity";
 import { RuleEngineService } from "./rule.engine.service";
+import type { RuleEngineCheckRequest, } from "../orchestrator/transaction.service";
+
 
 
 
@@ -19,28 +21,7 @@ export class RuleEngineController{
     @UseGuards(JwtAuthGuard,RolesGuard)
     @Roles(Role.TERMINAL)
     @Post('checks')
-    async ruleEngineChecks(
-       @Body() ruleEngineDto:{
-        token:string,
-        amount:number;
-        currency: string;
-        merchant: string;
-        accountStatus:"active"|"blocked"|"closed";
-        customerID: string;
-        }
-    ){
-   
-
-    return await this.ruleEngineService.
-    enginechecks(
-        {
-        accountStatus:ruleEngineDto.accountStatus,
-        customerID:ruleEngineDto.customerID,
-        panToken:ruleEngineDto.token,
-        amount:ruleEngineDto.amount,
-        currency:ruleEngineDto.currency,
-        merchant:ruleEngineDto.merchant,
- 
-    })   
-  } 
+    async ruleEngineChecks(@Body() ruleEngineDto: RuleEngineCheckRequest) {
+      return await this.ruleEngineService.enginechecks(ruleEngineDto);
+    }
 }

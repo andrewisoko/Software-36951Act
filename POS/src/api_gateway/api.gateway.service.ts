@@ -27,7 +27,9 @@ export class ApiGatewayService {
 
         const response = await firstValueFrom( this.httpService.post(
             'http://localhost:3002/transaction/orchestra',
+       
             {
+                key:transactionDetails.key,
                 terminal:virtualTerminal.id,
                 amount: transactionDetails.amount,
                 currency: transactionDetails.currency,

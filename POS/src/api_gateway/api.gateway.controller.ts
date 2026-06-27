@@ -28,16 +28,16 @@ export class ApiGatewayController {
       @Body() paymentDraft:Draft,
       @Req()  req
   ){
-      const timestamp = new Date().toDateString()
+        const timestamp = new Date().toISOString();
         return this.apiGatewayService.RedirectToOrchestra(
-            
               {
+                key:req.user.key,
                 terminal: paymentDraft.terminalId,
                 amount: paymentDraft.amount,
                 currency: 'GBP',
                 pan: req.user.pan.toString(),
                 expiry:req.user.expiry,
-                merchant:"TEST MERCHANT LONDON GB",
+                merchant:"TRANSACT RETAIL",
                 timestamp: timestamp,
                 customer: req.user.customer,
                 account:req.user.account

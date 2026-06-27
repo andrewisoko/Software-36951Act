@@ -19,6 +19,7 @@ import { MongooseModule } from "@nestjs/mongoose";
 import { IssuerRuleService } from "./banks/issuer_service/issuer_rules/issuer.rules.service";
 import { IssuerRulesController } from "./banks/issuer_service/issuer_rules/issuer.rules.controller";
 import { SettlementService } from "../settlement/settlement_engine/settlement.service";
+import { NotificationService } from "../notification.service/notification.service";
 
 
 /* initial auth approach will be a simple jwt authorisation. The app initially verifies if web POS terminal contains the token.*/
@@ -52,7 +53,8 @@ import { SettlementService } from "../settlement/settlement_engine/settlement.se
         IssuerService,
         EncryptSecurity,
         IssuerRuleService,
-        SettlementService
+        SettlementService,
+        NotificationService,
     ],
     exports:[IssuerService]
 })

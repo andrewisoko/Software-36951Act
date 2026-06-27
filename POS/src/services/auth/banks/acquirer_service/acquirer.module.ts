@@ -6,13 +6,19 @@ import { Conversion } from '../iso_val_conversions/conversions';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Acquirer } from '../entity/acquirer.entity';
 import { TokenisationService } from 'src/services/tokenisation_service/tokenisation.service';
+import { HttpModule } from '@nestjs/axios';
+import { NotificationService } from 'src/services/notification.service/notification.service';
 
 @Module({
-  imports:[TypeOrmModule.forFeature([Acquirer])],
+  imports:[
+    HttpModule,
+    TypeOrmModule.forFeature([Acquirer])
+  ],
   providers: [AcquirerService,
     EncryptSecurity,
     Conversion,
-    TokenisationService
+    TokenisationService,
+    NotificationService
     ],
   controllers: [AcquirerController]
 })

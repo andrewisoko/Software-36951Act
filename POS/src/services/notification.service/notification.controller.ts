@@ -13,25 +13,27 @@ export class NotificationController {
 
     @UseGuards(JwtAuthGuard,RolesGuard)
     @Roles(Role.TERMINAL)
-    @Post("kafka-message")
+    @Post("device-app-message")
     async notification(
         @Body() dataDto: {
 
+        key:string,
         message: string
         customer:string,
         amount:number,
+        status:string,
         currency:string,
         merchant:string,
         timestamp:string
     }
     ){ 
-        await this.notificationService.bootstrap()
-        await this.notificationService.onModuleInit()
 
         return this.notificationService.sendMessage({
+            key:dataDto.key,
             message: dataDto.message,
             customer:dataDto.customer,
-            amount:dataDto.amount,
+            amount: dataDto.amount,
+            status:dataDto.status,
             currency:dataDto.currency,
             merchant:dataDto.merchant,
             timestamp:dataDto.timestamp

@@ -5,6 +5,8 @@ import { Transaction } from "../orchestrator/entity/transaction.entity";
 import { EncryptSecurity } from "../orchestrator/encryption/encrypt.security";
 
 
+
+
 export interface TokenRecord {
   token: string;
   rawPan: string;
@@ -43,6 +45,7 @@ export class TokenisationService {
         this.store( { token, rawPan }, vault );
         
         console.log("Pan tokenised.");
+
         return token;
         
     } catch (error) {

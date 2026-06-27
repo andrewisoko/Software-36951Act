@@ -37,7 +37,14 @@ export class SettlementService {
       if (!account) throw new Error ("Account at settlement level not found");
 
 
-     
+      // if( transaction.status === TRANSACTION_STATUS.DECLINED 
+      //   || transaction.status === TRANSACTION_STATUS.PENDING
+      // ){
+      //   await this.accountModel.updateOne(
+      //     {_id: account._id},
+      //     {}
+      // )
+      // }
 
       await this.accountModel.updateOne(
         { _id: account._id },

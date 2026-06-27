@@ -83,7 +83,11 @@ export class AcquirerService {
             
 
             const isoBuffer = iso.getBufferMessage();
-            if (isoBuffer.error) throw new Error(`ISO8583 encoding error: ${isoBuffer.error}`);
+            if (!isoBuffer || isoBuffer.error || !isoBuffer.length) {
+                throw new Error(
+                    `ISO8583 encoding failed: ${isoBuffer?.error ?? 'unknown error'}`
+                );
+            }
             
 
             // add 2-byte length header

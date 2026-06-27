@@ -1,57 +1,47 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
-import { NestFactory } from '@nestjs/core';
-import { ClientKafka } from '@nestjs/microservices';
-import { POSModule } from 'src/virtual_terminal/pos.module';
-import { Transport, MicroserviceOptions } from '@nestjs/microservices';
-import { Inject } from '@nestjs/common';
-import { NotificationModule } from './notification.module';
+import { Injectable,} from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
+import { NotificationToDeviceApp } from '../orchestrator/transaction.service';
 
-export interface KafkaMessageData {
 
-        message: string,
-        customer:string,
-        amount:number,
-        currency:string,
-        merchant:string,
-        timestamp:string
-}
 
 @Injectable()
-export class NotificationService implements OnModuleInit {
+export class NotificationService {
+    constructor(
+        private readonly HttpService:HttpService
+    ){}
 
-       @Inject('KAFKA_SERVICE') private readonly client: ClientKafka
+  
+    async sendMessage(data:NotificationToDeviceApp) 
+    {
 
-    async bootstrap() {
-      const app = await NestFactory.createMicroservice<MicroserviceOptions>(NotificationModule, {
-        transport: Transport.KAFKA,
-        options: {
-          client: {
-            clientId: 'POS-app',
-            brokers: ['localhost:9092'], 
-          },
-          consumer: {
-            groupId: 'user-account',
-          },
-        },
-      });
-    
-      await app.listen();
-    }
-
-    async onModuleInit() {
-        await this.client.connect();
-    }
-
-    async sendMessage(data:KafkaMessageData) {
-        return this.client.emit('notification-topic', {
-
+      const response = await firstValueFrom(
+        this.HttpService.post(
+          "http://localhost:3100/transaction/outcome-device-app",
+          {
+            key:data.key,
             message: data.message,
             customer:data.customer,
             amount:data.amount,
+            status:data.status,
             currency:data.currency,
             merchant:data.merchant,
-            timestamp:data.timestamp,
-        });
+            timestamp:data.timestamp
+          }
+        ),
+      )
+      
+      console.log('sending message to device app', {
+        key: data.key,
+        message: data.message,
+        customer: data.customer,
+        amount: data.amount,
+        status: data.status,
+        currency: data.currency,
+        merchant: data.merchant,
+        timestamp: data.timestamp,
+      });
+
+      return response.data
     }
-    
-}
+  }

@@ -22,7 +22,7 @@ export enum STATUS{
 @Entity("party")
 export class Party {
 
-    @PrimaryColumn({type:'text'})
+    @PrimaryGeneratedColumn('uuid')
     id:string;
 
     @Column('varchar', { length: 20, default: 'Name Surname' })

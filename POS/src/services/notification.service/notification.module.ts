@@ -1,30 +1,17 @@
 import { Module } from '@nestjs/common';
 import { NotificationService } from './notification.service';
 import { NotificationController } from './notification.controller';
-import { ClientsModule, Transport } from '@nestjs/microservices';
-import { ClientKafka } from '@nestjs/microservices';
+import { HttpModule } from '@nestjs/axios';
+
+
 
 
 
 @Module({
-  imports: [
-    ClientsModule.register([
-      {
-        name: 'KAFKA_SERVICE',
-        transport: Transport.KAFKA,
-        options: {
-          client: {
-            clientId: 'POS-app',
-            brokers: ['localhost:9092'],
-          },
-          consumer: {
-            groupId: 'user-account',
-          },
-        },
-      },
-    ]),
-  ],
 
+  imports: [
+   HttpModule
+  ],
   providers: [NotificationService],
   controllers: [NotificationController]
 })

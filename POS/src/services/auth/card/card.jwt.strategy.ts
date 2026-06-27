@@ -25,6 +25,7 @@ export class cardJwtStrategy extends PassportStrategy(Strategy, 'card-jwt') {
  
         return {
        
+          key:transactionDetails.key, // for kafka //
           pan: transactionDetails.pan,
           expiry: transactionDetails.expiry,
           customer:transactionDetails.customer,
