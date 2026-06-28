@@ -46,6 +46,9 @@ export class Ledger {
   @Column({ type: 'timestamptz' })
     event_timestamp: Date;
   
+  @Column('varchar',{ default:'pending'})
+      status:string
+      
   @Column({nullable:true})
     masked_pan: string;
   

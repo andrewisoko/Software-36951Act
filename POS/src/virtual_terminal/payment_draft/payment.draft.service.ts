@@ -36,12 +36,12 @@ export class PaymentDraftService {
   }
 
   async attachCard(draftId: string, cardToken: string) {
+
     const draft = await this.draftRepo.findOne({
       where: { id: draftId },
     });
 
     if (!draft) throw new NotFoundException('Draft not found');
-
     // if (draft.status !== 'AWAITING_CARD_SCAN') {
     //   throw new BadRequestException('Draft not scannable');
     // }
@@ -56,16 +56,13 @@ export class PaymentDraftService {
     draft.status = 'PROCESSING';
     draft.cardToken = cardToken;
 
-    console.log('cardToken',cardToken)
-
+    // console.log('cardToken',cardToken)
     const scannedValue = cardToken;
 
     const token = scannedValue.replace(
         'paycard://',
         '',
     );
-
-
     const transactionRequest = await firstValueFrom(
         this.httpService.post(
             'http://localhost:3002/api-gateway/',

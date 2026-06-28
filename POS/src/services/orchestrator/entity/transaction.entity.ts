@@ -38,7 +38,7 @@ export class Transaction {
     @Column({
         type:"enum",
         enum:TRANSACTION_STATUS,
-        default:TRANSACTION_STATUS.DECLINED,
+        default:TRANSACTION_STATUS.PENDING,
     })
         status: TRANSACTION_STATUS;
 

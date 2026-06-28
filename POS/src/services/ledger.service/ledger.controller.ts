@@ -24,6 +24,7 @@ export class LedgerController {
             amount:number,
             currency:string,
             eventTimestamp:Date,
+            status:string,
             maskedPan:string,
         }
     ){

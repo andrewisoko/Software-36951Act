@@ -23,14 +23,18 @@ export class ApiGatewayService {
         ){
 
         const virtualTerminal = await this.terminalRepository.findOne({where:{id:transactionDetails.terminal}});
-        if( !virtualTerminal ) throw new NotFoundException('temrnial not found')
+        if( !virtualTerminal ) throw new NotFoundException('terminal not found')
 
+    
+        console.log('virtual terminal',virtualTerminal.id)
+           
+            
         const response = await firstValueFrom( this.httpService.post(
             'http://localhost:3002/transaction/orchestra',
        
             {
                 key:transactionDetails.key,
-                terminal:virtualTerminal.id,
+                terminal:transactionDetails.terminal,
                 amount: transactionDetails.amount,
                 currency: transactionDetails.currency,
                 pan: transactionDetails.pan,

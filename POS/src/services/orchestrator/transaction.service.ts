@@ -145,7 +145,6 @@ export class TransactionService{
 
                 })
                 await this.transactionRepository.save(transaction)
-                
 
                 await this.accountModel.updateOne(
                     { _id: account },
@@ -208,7 +207,7 @@ export class TransactionService{
                 account:fullRequestData.account,
             })
 
-            console.log('data', fullRequestData)
+            // console.log('data', fullRequestData)
             if (! transaction) throw new Error ("failed transaction")
 
             const panEncryptParse = JSON.parse(transaction.pan_encrypt);
@@ -218,7 +217,6 @@ export class TransactionService{
 
 
             /* transansaction service calls merchant service (Auth / no service logic) */
-
             const validateTerminalResponse = await firstValueFrom(
             this.httpService.get(
                 'http://localhost:3002/auth/validation-terminal/',
@@ -260,7 +258,11 @@ export class TransactionService{
 
         //////////STOP ORCHESTRA IF ERROR//////////////////
 
-            if( tokenResponse.status !== 201 ) return;
+            if( tokenResponse.status !== 201 ){
+                transaction.status = TRANSACTION_STATUS.DECLINED
+                await this.transactionRepository.save(transaction)
+                return;
+            } 
         
         ///////////////////////////////////////////////////
             
@@ -296,9 +298,12 @@ export class TransactionService{
 
         //////////STOP ORCHESTRA IF ERROR//////////////////
 
-            console.log('rule engine status', ruleEngine.status)
-
-             if( ruleEngine.status !== 201 ) return;
+        
+                if( ruleEngine.status !== 201 ){
+                transaction.status = TRANSACTION_STATUS.DECLINED
+                await this.transactionRepository.save(transaction)
+                return;
+                } 
         
         ///////////////////////////////////////////////////
 
@@ -329,7 +334,11 @@ export class TransactionService{
 
         //////////STOP ORCHESTRA IF ERROR//////////////////
 
-            if( acquirerService.status !== 201 ) return;
+                if( acquirerService.status !== 201 ){
+                transaction.status = TRANSACTION_STATUS.DECLINED
+                await this.transactionRepository.save(transaction)
+                return;
+                } 
         
         ///////////////////////////////////////////////////
             
@@ -374,9 +383,12 @@ export class TransactionService{
 
                         //////////STOP ORCHESTRA IF ERROR//////////////////
 
-                             if( notificationService.status !== 201 ) return;
+                            if( notificationService.status !== 201 ) return;
         
                         ///////////////////////////////////////////////////
+
+                    //     transaction.status = TRANSACTION_STATUS.PENDING
+                    //    await this.transactionRepository.save(transaction)
             
                         const settlementEngine = await firstValueFrom(
                             this.httpService.post(
@@ -392,9 +404,6 @@ export class TransactionService{
                         )
                     } catch (error) {
                        console.log('error after transaction approved', error) 
-                       transaction.status = TRANSACTION_STATUS.PENDING
-                       await this.transactionRepository.save(transaction)
-                       
                     }
 
             
@@ -422,11 +431,6 @@ export class TransactionService{
                         },
                     },
                     
-                )
-            )
-
-
-            }
-        }
-    
-    }
+                ))
+            }};
+        };

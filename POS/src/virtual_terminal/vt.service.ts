@@ -46,7 +46,7 @@ export class VirtualTerminalService{
     const signature = this.generateSignature();
 
     const certTerminal = {
-        serialNumber,
+        serial_number: serialNumber,
         signature,
         issuer: 'Tutorial Bank',
         subject: 'TRANSACT RETAIL',

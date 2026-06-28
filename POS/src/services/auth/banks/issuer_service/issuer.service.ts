@@ -194,6 +194,28 @@ export class IssuerService implements OnModuleInit {
                     /* COMPENSATION STEP */
 
                     await this.releaseHold(accountId, amount);
+
+                    transaction.status = TRANSACTION_STATUS.REFUNDED;
+                      console.log({
+                            responseCode: "",
+                            authCode: "9274FXC",
+                            message: 'Amount refunded.'
+                        });
+                    await this.transactionRepository.save(transaction);
+
+                    const account = await this.accountModel.findOne({ _id:accountId }).exec();
+                    if (! account) throw new NotFoundException("Account for contract agreement not found. ");
+
+                     await this.callLedgerService(
+                        pan,
+                        account,
+                        transaction,
+                        amount,
+                        eventTimeStamp,
+                        transaction.status,
+                        issuerToken
+                    );
+
                     throw error;
                 }
 
@@ -215,35 +237,37 @@ export class IssuerService implements OnModuleInit {
         transaction,
         amount,
         eventTimeStamp,
+        status,
         issuerToken
     ){
                  
-            const maskPan:string = pan.toString().slice(-4).padStart(12,'*')
+        const maskPan:string = pan.toString().slice(-4).padStart(12,'*')
 
-            try {
-                const ledgerDoubleEntry = await firstValueFrom(
-                   this.httpService.post(
-                   'http://localhost:3002/ledger/double-entry',
-                   {
-                       account_id: account.id,
-                       transaction_id:transaction.id,
-                       amount:amount,
-                       currency:"GBP",
-                       eventTimestamp:eventTimeStamp,
-                       maskedPan:maskPan,
-                   },
-                   {
-                     headers:{
-                        Authorization: `Bearer ${issuerToken}`
-                     }
-                   }
-                   )) 
-               console.log("Ledger service response", ledgerDoubleEntry.data)
-                
-            } catch (error) {
-                console.log('failed to call ledger service', error)
-            }
+        try {
+            const ledgerDoubleEntry = await firstValueFrom(
+                this.httpService.post(
+                'http://localhost:3002/ledger/double-entry',
+                {
+                    account_id: account.id,
+                    transaction_id:transaction.id,
+                    amount:amount,
+                    currency:"GBP",
+                    eventTimestamp:eventTimeStamp,
+                    status:status,
+                    maskedPan:maskPan,
+                },
+                {
+                    headers:{
+                    Authorization: `Bearer ${issuerToken}`
+                    }
+                }
+                )) 
+            console.log("Ledger service response", ledgerDoubleEntry.data)
             
+        } catch (error) {
+            console.log('failed to call ledger service', error)
+        }
+        
     }
 
 
@@ -293,9 +317,6 @@ export class IssuerService implements OnModuleInit {
     
                 /* contract here */
 
-                
-
-            try {
                 if ( conditions.length > 0 ){
 
 
@@ -360,6 +381,7 @@ export class IssuerService implements OnModuleInit {
                                 transaction,
                                 splitAmount,
                                 eventTimeStamp,
+                                transaction.status,
                                 issuerToken
                                 );
 
@@ -419,6 +441,7 @@ export class IssuerService implements OnModuleInit {
                                 transaction,
                                 splitAmount,
                                 eventTimeStamp,
+                                transaction.status,
                                 issuerToken
                                 );
                                 
@@ -458,17 +481,11 @@ export class IssuerService implements OnModuleInit {
                         transaction,
                         wholeAmount,
                         eventTimeStamp,
+                        transaction.status,
                         issuerToken
                     );
 
                 }
-                
-
-               } catch (error) {
-                    console.log('Error occurred at Issuer Service', error )
-               }
-
-             
             
             });
 

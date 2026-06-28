@@ -1,12 +1,11 @@
 
 import { Body, Controller,Post,Req, UseGuards} from '@nestjs/common';
 import { ApiGatewayService } from './api.gateway.service';
-import { FullRequestDto } from 'src/virtual_terminal/payment_draft/dto/request.data.dto';
 import { AuthGuard } from '@nestjs/passport';
 
 
 export interface Draft{
-    terminalId: string,
+    terminal: string,
     amount:number,
     currency:string,
 }
@@ -29,10 +28,11 @@ export class ApiGatewayController {
       @Req()  req
   ){
         const timestamp = new Date().toISOString();
+
         return this.apiGatewayService.RedirectToOrchestra(
               {
                 key:req.user.key,
-                terminal: paymentDraft.terminalId,
+                terminal: paymentDraft.terminal,
                 amount: paymentDraft.amount,
                 currency: 'GBP',
                 pan: req.user.pan.toString(),
