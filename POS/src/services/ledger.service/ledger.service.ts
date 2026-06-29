@@ -29,7 +29,7 @@ export class LedgerService {
 
     const commonKey = randomUUID(); 
 
-    const debit = manager.create(Ledger, {
+    const debit =await manager.create(Ledger, {
       account_id: record.account_id, 
       transaction_id: record.transaction_id,
       amount: record.amount,
@@ -42,7 +42,7 @@ export class LedgerService {
       idempotency_key: commonKey + '_D'
     });
 
-    const credit = manager.create(Ledger, {
+    const credit = await manager.create(Ledger, {
 
       account_id: record.account_id, 
       transaction_id: record.transaction_id,

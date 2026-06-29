@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { AcquirerRequest } from 'src/services/orchestrator/transaction.service';
 import { EncryptSecurity } from 'src/services/orchestrator/encryption/encrypt.security';
 import { Conversion } from '../iso_val_conversions/conversions';
@@ -6,6 +6,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Acquirer } from '../entity/acquirer.entity';
 import { TokenisationService } from 'src/services/tokenisation_service/tokenisation.service';
 import { Repository } from 'typeorm';
+
+
+
+
 
 @Injectable()
 export class AcquirerService {
@@ -20,13 +24,10 @@ export class AcquirerService {
 
     async acquirerBankService( acqData:AcquirerRequest ){
 
-
+        console.log( 'starts here' )
         const fee = 0.74;
         const merchantNetAmount = acqData.amount - fee;
 
-        try {
-            
-     
 
         const acquirerTable = await this.acquirerRepository.create(
             {
@@ -38,30 +39,16 @@ export class AcquirerService {
         )
 
         await this.acquirerRepository.save(acquirerTable)
-
-
-        const net = require('net');
+    
         const iso8583 = require('iso_8583');
-
-        
         const isoAmount = this.convertInIsoVal.toIsoAmount(acqData.amount);
-
-        // const panObject = JSON.parse(acqData.panToken)
         const expObject =  JSON.parse(acqData.exiprationDate);
-
         const rawPan = this.tokenService.detokenisetoken(acqData.panToken);
-
-
-        // console.log(typeof(rawPan));
-
         const rawExpDate = this.encryptSecurity.decrypt(expObject);
-        
         const isoExpDate = this.convertInIsoVal.formatExpiry(rawExpDate)
-
         const stanString = acqData.stan.toString()
-        
+        const net = require('net');
         const acquirer = new net.Socket();
-        
         
         acquirer.connect(5000,'localhost',() => {
             
@@ -85,11 +72,10 @@ export class AcquirerService {
             const isoBuffer = iso.getBufferMessage();
             if (!isoBuffer || isoBuffer.error || !isoBuffer.length) {
                 throw new Error(
-                    `ISO8583 encoding failed: ${isoBuffer?.error ?? 'unknown error'}`
+                    `[ACQUIRER SERVICE] ISO8583 encoding failed: ${isoBuffer?.error ?? 'unknown error'}`
                 );
             }
             
-
             // add 2-byte length header
             const len = Buffer.alloc(2);
             len.writeUInt16BE(isoBuffer.length);
@@ -101,13 +87,8 @@ export class AcquirerService {
 
         })
         
-
         acquirer.on('data', (data) => {
-        console.log('Response:', data.toString('hex'));
+        console.log('[ACQUIRER SERVICE] Response:', data.toString('hex'));
         });
-        
-           } catch (error) {
-            console.log('Error acquirer service at', error)
-        }
     }
 }

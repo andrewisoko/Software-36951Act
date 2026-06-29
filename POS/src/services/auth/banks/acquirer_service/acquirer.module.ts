@@ -18,7 +18,6 @@ import { NotificationService } from 'src/services/notification.service/notificat
     EncryptSecurity,
     Conversion,
     TokenisationService,
-    NotificationService
     ],
   controllers: [AcquirerController]
 })

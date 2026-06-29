@@ -12,6 +12,6 @@ export class MerchantController{
     @Roles(Role.TERMINAL)
     @Get('validation-terminal')
     validateTerminal(){
-        return "Web terminal validated 🚀"
+        return "[MERCHANT SERVICE] Web terminal validated 🚀"
     }
 }

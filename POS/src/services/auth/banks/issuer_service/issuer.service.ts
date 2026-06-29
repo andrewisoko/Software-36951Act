@@ -59,7 +59,7 @@ export class IssuerService implements OnModuleInit {
     async findTransaction(stan:number){
 
         const transaction =  await this.transactionRepository.findOne({ where:{ stan:stan } }) 
-        if (!transaction) throw new NotFoundException( "transaction not found" );
+        if (!transaction) throw new NotFoundException( "[ISSUER SERVICE] transaction not found (findTransaction)" );
 
         return transaction
     };
@@ -93,7 +93,7 @@ export class IssuerService implements OnModuleInit {
     async findTargetAccount( accountId:string ){
         
         const accountsData = await this.accountModel.findOne({ _id:accountId }).exec();
-        if (! accountsData) throw new NotFoundException("Account for contract agreement not found. ");
+        if (! accountsData) throw new NotFoundException("[ISSUER SERVICE] Account for contract agreement not found. ");
         
         return accountsData;
 
@@ -168,7 +168,7 @@ export class IssuerService implements OnModuleInit {
             const isApproved = accountChecks.data?.action === 'approved';
             
             if (!isApproved) {
-                console.log("transaction at issuer not approved")
+                console.log("[ISSUER SERVICE] transaction not approved")
                 return false;
             }
             const eventTimeStamp = new Date(Date.now())
@@ -197,14 +197,14 @@ export class IssuerService implements OnModuleInit {
 
                     transaction.status = TRANSACTION_STATUS.REFUNDED;
                       console.log({
-                            responseCode: "",
+                            responseCode: "XX",
                             authCode: "9274FXC",
                             message: 'Amount refunded.'
                         });
                     await this.transactionRepository.save(transaction);
 
                     const account = await this.accountModel.findOne({ _id:accountId }).exec();
-                    if (! account) throw new NotFoundException("Account for contract agreement not found. ");
+                    if (! account) throw new NotFoundException("[ISSUER SERVICE] Account for contract agreement not found. ");
 
                      await this.callLedgerService(
                         pan,
@@ -262,10 +262,10 @@ export class IssuerService implements OnModuleInit {
                     }
                 }
                 )) 
-            console.log("Ledger service response", ledgerDoubleEntry.data)
+            console.log("[ISSUER SERVICE]", ledgerDoubleEntry.data)
             
         } catch (error) {
-            console.log('failed to call ledger service', error)
+            console.log('[ISSUER SERVICE] failed to call ledger service', error)
         }
         
     }
@@ -287,7 +287,7 @@ export class IssuerService implements OnModuleInit {
 
               
 
-                console.log("Received ISO message:", data.toString('hex'));
+                console.log("[ISSUER SERVICE] Received ISO message:", data.toString('hex'));
 
                 let responseCode = "51";
                 const isoMsg = this.parseIsoMessage(data);
@@ -338,7 +338,7 @@ export class IssuerService implements OnModuleInit {
                                     prevTransaction.status = TRANSACTION_STATUS.DECLINED;
                                     await this.transactionRepository.save(prevTransaction);
                                     conditions.pop()
-                                    throw new Error ('contract percentage expired ');
+                                    throw new Error ('[ISSUER SERVICE] contract percentage expired ');
                                 };
 
                             const totPercentage = setAgreements.percentages.reduce((firstElem,otherElem) => firstElem + otherElem,0);
@@ -347,7 +347,7 @@ export class IssuerService implements OnModuleInit {
                             if(totPercentage !== 100){
                                 prevTransaction.status = TRANSACTION_STATUS.DECLINED;
                                 await this.transactionRepository.save(prevTransaction);
-                                throw new Error('percentages not covering the whole amount')
+                                throw new Error('[ISSUER SERVICE] percentages not covering the whole amount')
                             } 
 
                                 const splitAmount = (( setAgreements.percentages[count] / 100) * wholeAmount );
@@ -398,7 +398,7 @@ export class IssuerService implements OnModuleInit {
                                     prevTransaction.status = TRANSACTION_STATUS.DECLINED;
                                     await this.transactionRepository.save(prevTransaction);
                                     conditions.pop()
-                                    throw new Error ('contract amount expired');
+                                    throw new Error ('[ISSUER SERVICE] contract amount expired');
                                 };
                                 const sumAmounts = setAgreements.amounts.reduce( ( acc, curr ) => acc + curr, 0 );
                             
@@ -406,7 +406,7 @@ export class IssuerService implements OnModuleInit {
                                 if( sumAmounts !==  wholeAmount ) {
                                     prevTransaction.status = TRANSACTION_STATUS.DECLINED;
                                     await this.transactionRepository.save(prevTransaction);
-                                    throw new Error( 'Invalid split amount [issuer service] ')
+                                    throw new Error( '[ISSUER SERVICE] Invalid split amount ')
                                 };
                                 splitAmount = setAgreements.amounts[count];
 
@@ -420,7 +420,7 @@ export class IssuerService implements OnModuleInit {
                                     targetAccount.expiry,
                                 )
 
-                                if(! contractTransaction ) throw new Error ("contract transaction failed at creation")
+                                if(! contractTransaction ) throw new Error ("[ISSUER SERVICE] contract transaction failed at creation")
                                 contractTransaction.amount = splitAmount;
                                
                                const approved = await this.callAccountService(
@@ -496,7 +496,7 @@ export class IssuerService implements OnModuleInit {
         const net = require('net');
         this.server = net.createServer();
         this.server.listen(5000, () => {
-            console.log("ISO8583 server running on port 5000");
+            console.log("[ISSUER SERVICE] ISO8583 server running on port 5000");
         });
     }
 

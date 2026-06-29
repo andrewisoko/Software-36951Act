@@ -24,7 +24,7 @@ export class SettlementService {
     async findTransactStatus(id:string){
 
       const transaction = await this.transactionRepository.findOne({where:{id:id}});
-      if (!transaction) throw new Error ("Transaction not found");
+      if (!transaction) throw new Error ("[SETTLEMENT SERVICE] Transaction not found");
 
       return transaction.status
 
@@ -48,10 +48,10 @@ export class SettlementService {
             $inc: { ledger_balance: -account.hold, hold: -account.hold }
           }
         );
+
+        console.log('[SETTLEMENT SERVICE] transaction now settled')
   
         transaction.status = TRANSACTION_STATUS.SETTLED
-
-
         await this.transactionRepository.save(transaction)
   
            console.log ({
@@ -63,7 +63,7 @@ export class SettlementService {
         if( !ledgerSettled ){
 
             const timestamp = new Date(Date.now())
-            const rawPan = JSON.stringify(this.encryption.decrypt( transaction.pan_encrypt ??'Not found' ));
+            const rawPan = JSON.stringify(this.encryption.decrypt( transaction.pan_encrypt ??'[SETTLEMENT SERVICE] ]Not found' ));
             const maskPan:string = rawPan.toString().slice(-4).padStart(12,'*')
 
 
@@ -78,7 +78,9 @@ export class SettlementService {
                 maskedPan: maskPan
 
               }
+
             )
+            console.log('[SETTLEMENT SERVICE] ledger status now settled')
 
           }
         }

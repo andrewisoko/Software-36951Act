@@ -27,17 +27,17 @@ export class RuleEngineService{
    
             // console.log('merchant name',engineCheckRequest.merchant )
             const checkCustomerID = await this.partyRepository.findOne({ where:{ full_name:engineCheckRequest.customer }});
-            if (! checkCustomerID ) throw new NotFoundException("rule engine: customerID not found");
+            if (! checkCustomerID ) throw new NotFoundException("[RULE ENGINE] customerID not found");
     
             const terminal = await this.terminalRepository.findOne({ where:{id: engineCheckRequest.terminalID }});
-            if (! terminal ) throw new NotFoundException("rule engine: terminal not found");
+            if (! terminal ) throw new NotFoundException("[RULE ENGINE] terminal not found");
     
-            if(terminal.subject!== engineCheckRequest.merchant) throw new UnauthorizedException('rule engine: merchant error')
+            if(terminal.subject!== engineCheckRequest.merchant) throw new UnauthorizedException('[RULE ENGINE] merchant error')
     
-            if ( engineCheckRequest.accountStatus !== "active" ) throw new UnauthorizedException("rule engine: account not active")
+            if ( engineCheckRequest.accountStatus !== "active" ) throw new UnauthorizedException("[RULE ENGINE] account not active")
             
-            if( engineCheckRequest.amount > 150000 ) throw new UnauthorizedException("rule engine: Invalid amount");  /*balance check to be added.*/
-            if ( engineCheckRequest.currency !== "GBP" ) throw new UnauthorizedException("rule engine: Invalid currency");
+            if( engineCheckRequest.amount > 150000 ) throw new UnauthorizedException("[RULE ENGINE] Invalid amount");  /*balance check to be added.*/
+            if ( engineCheckRequest.currency !== "GBP" ) throw new UnauthorizedException("[RULE ENGINE] Invalid currency");
     
             approved = true
             const action = approved ? "approved": "declined";

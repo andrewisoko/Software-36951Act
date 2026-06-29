@@ -20,6 +20,7 @@ import { IssuerRuleService } from "./banks/issuer_service/issuer_rules/issuer.ru
 import { IssuerRulesController } from "./banks/issuer_service/issuer_rules/issuer.rules.controller";
 import { SettlementService } from "../settlement/settlement_engine/settlement.service";
 import { NotificationService } from "../notification.service/notification.service";
+import { LedgerService } from "../ledger.service/ledger.service";
 
 
 /* initial auth approach will be a simple jwt authorisation. The app initially verifies if web POS terminal contains the token.*/
@@ -54,7 +55,7 @@ import { NotificationService } from "../notification.service/notification.servic
         EncryptSecurity,
         IssuerRuleService,
         SettlementService,
-        NotificationService,
+        LedgerService
     ],
     exports:[IssuerService]
 })

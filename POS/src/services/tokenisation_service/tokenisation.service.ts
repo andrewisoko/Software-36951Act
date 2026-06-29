@@ -38,18 +38,18 @@ export class TokenisationService {
     tokenisePan(encryptedPan:string){
 
     try {
-        if(!encryptedPan) throw new NotFoundException("pan not found")
+        if(!encryptedPan) throw new NotFoundException("[TOKENISATION SERVICE] pan not found")
             // console.log(pan)
         const rawPan = this.decryption.decrypt(encryptedPan);
         const token = crypto.randomUUID();
         this.store( { token, rawPan }, vault );
         
-        console.log("Pan tokenised.");
+        console.log("[TOKENISATION SERVICE] Pan tokenised.");
 
         return token;
         
     } catch (error) {
-        console.log(`error ${error}`)
+        console.log(`[TOKENISATION SERVICE] error ${error}`)
     }
 }
 }

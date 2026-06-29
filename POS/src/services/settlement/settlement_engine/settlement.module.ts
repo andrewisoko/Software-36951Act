@@ -7,6 +7,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { AccountSchema } from 'src/services/account_service/document/account.doc';
 import { LedgerService } from 'src/services/ledger.service/ledger.service';
 import { Ledger } from 'src/services/ledger.service/entity/ledger.entity';
+import { EncryptSecurity } from 'src/services/orchestrator/encryption/encrypt.security';
 
 
 @Module({
@@ -16,7 +17,8 @@ import { Ledger } from 'src/services/ledger.service/entity/ledger.entity';
         MongooseModule.forFeature([ {name:'Account', schema: AccountSchema} ])
 ],
     controllers:[SettlementController],
-    providers:[SettlementService,LedgerService],
+    providers:[SettlementService,LedgerService,EncryptSecurity
+    ],
     exports:[SettlementService]
 
 })

@@ -13,6 +13,7 @@ import { IssuerService } from "../auth/banks/issuer_service/issuer.service";
 import { Model } from "mongoose";
 import { AccountDocument } from "../account_service/document/account.doc";
 import { InjectModel } from "@nestjs/mongoose";
+import { Ledger } from "../ledger.service/entity/ledger.entity";
 
 
 
@@ -69,6 +70,7 @@ export class TransactionService{
         @InjectModel('Account') private accountModel: Model<AccountDocument>,
         @InjectRepository(Terminal) private readonly terminalRepository:Repository<Terminal>,
         @InjectRepository(RuleEngine) private readonly ruleEngineRepository:Repository<RuleEngine>,
+        @InjectRepository(Ledger) private readonly ledgerRepository:Repository<Ledger>,
 
 
         private readonly encryption:EncryptSecurity,
@@ -111,7 +113,7 @@ export class TransactionService{
 
             let customerData = await this.partyRepository.findOne({ where:{ full_name:customer }})
             if(! customerData ){
-                console.log("Party not found")
+                console.log("[TRANSACTION SERVICE] Party not found")
 
                     const user = await this.partyRepository.create({
                     full_name:customer
@@ -124,10 +126,10 @@ export class TransactionService{
             
        
             const accountData = await this.accountModel.findOne({ _id:account })
-            if( ! accountData ) throw new NotFoundException("Account not found");
+            if( ! accountData ) throw new NotFoundException("[TRANSACTION SERVICE] Account not found");
 
             const terminalData = await this.terminalRepository.findOne({ where:{ id:terminal }})
-            if(! terminalData ) throw new NotFoundException("terminal not found");
+            if(! terminalData ) throw new NotFoundException("[TRANSACTION SERVICE] terminal not found");
 
             const encryptedPan = JSON.stringify(this.encryption.encrypt( pan ??'Not found' ));
             const encryptExpiryDate = JSON.stringify(this.encryption.encrypt(expiry ??'Not found'));
@@ -154,7 +156,7 @@ export class TransactionService{
                 return transaction
             
         } catch (error) {
-            console.log(`error: ${error}`)
+            console.log(`[TRANSACTION SERVICE] error at create transaction: ${error}`)
          }   
     };
 
@@ -208,7 +210,7 @@ export class TransactionService{
             })
 
             // console.log('data', fullRequestData)
-            if (! transaction) throw new Error ("failed transaction")
+            if (! transaction) throw new Error ("[TRANSACTION SERVICE] failed to create transaction")
 
             const panEncryptParse = JSON.parse(transaction.pan_encrypt);
             terminalToken = transaction.terminal.acc_token
@@ -261,7 +263,7 @@ export class TransactionService{
             if( tokenResponse.status !== 201 ){
                 transaction.status = TRANSACTION_STATUS.DECLINED
                 await this.transactionRepository.save(transaction)
-                return;
+                return 'tokenisation error';
             } 
         
         ///////////////////////////////////////////////////
@@ -289,7 +291,7 @@ export class TransactionService{
                  },
                 )
             ); 
-            console.log("rule engine:", ruleEngine.data);
+            console.log("[TRANSACTION SERVICE ] rule engine:", ruleEngine.data);
 
             const decision = ruleEngine.data["action"]
             const ruleEngineTable = await this.createRuleEngineTable(decision,transaction);
@@ -302,12 +304,11 @@ export class TransactionService{
                 if( ruleEngine.status !== 201 ){
                 transaction.status = TRANSACTION_STATUS.DECLINED
                 await this.transactionRepository.save(transaction)
-                return;
+                return 'rule engine error';
                 } 
         
         ///////////////////////////////////////////////////
-
-
+               
             /*banks talking to each other */
 
             const acquirerService = await firstValueFrom(
@@ -337,27 +338,29 @@ export class TransactionService{
                 if( acquirerService.status !== 201 ){
                 transaction.status = TRANSACTION_STATUS.DECLINED
                 await this.transactionRepository.save(transaction)
-                return;
+                return 'acquirer service error';
                 } 
         
         ///////////////////////////////////////////////////
             
             const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
             
-     
+            // console.log(acquirerService.status)
+
             const issuerService = this.issuerService.IssuerBankService();
 
-           
+          
+
             let approvedTrn: Transaction | null = null;
+
 
             for (let i = 0; i < 20; i++) {
                 await sleep(500);
-                approvedTrn = await this.transactionRepository.findOne({ where:{ id:transaction.id } });
-                if (approvedTrn && approvedTrn.status !== TRANSACTION_STATUS.DECLINED) break;
-            }
-            if ( !approvedTrn ) throw new NotFoundException( "Transaction not found" );
 
-            if( approvedTrn.status === TRANSACTION_STATUS.APPROVED){
+                approvedTrn = await this.transactionRepository.findOne({ where:{ id:transaction.id } });
+                // if ( !approvedTrn ) throw new NotFoundException( "[TRANSACTION SERVICE] Transaction not found when calling issuer service" );
+                // console.log(approvedTrn.status)
+                if (approvedTrn && approvedTrn.status === TRANSACTION_STATUS.APPROVED ){
                     try {
                         
                         const notificationService = await firstValueFrom(
@@ -380,15 +383,21 @@ export class TransactionService{
                                 
                             )
                         )
-
+        
                         //////////STOP ORCHESTRA IF ERROR//////////////////
-
-                            if( notificationService.status !== 201 ) return;
+        
+                            if( notificationService.status !== 201 ){
+                                ///change ledger status to pending on both credit and debit///
+        
+                                transaction.status = TRANSACTION_STATUS.PENDING
+                                await this.transactionRepository.save(transaction)
+                                console.log( 'notification service error');
+                                break;
+                            } 
+                            
         
                         ///////////////////////////////////////////////////
-
-                    //     transaction.status = TRANSACTION_STATUS.PENDING
-                    //    await this.transactionRepository.save(transaction)
+        
             
                         const settlementEngine = await firstValueFrom(
                             this.httpService.post(
@@ -403,15 +412,22 @@ export class TransactionService{
                             )
                         )
                     } catch (error) {
-                       console.log('error after transaction approved', error) 
+                       console.log('[TRANSACTION SERVICE] error after transaction approved', error)
+                       break; 
                     }
-
-            
         
+            
+                }break;
             }
 
+        //     if ( !approvedTrn ) throw new NotFoundException( "[TRANSACTION SERVICE] Transaction not found when calling issuer service" );
+
+        //     if( approvedTrn.status === TRANSACTION_STATUS.APPROVED){
+                
+        // }
+
         } catch (error) {
-            console.log(`Error at transaction orchestra: ${error}`)
+            console.log(`[TRANSACTION SERVICE] Error at transaction orchestra: ${error}`)
 
             const notificationService = await firstValueFrom(
                 this.httpService.post('http://localhost:3002/notification/device-app-message',
@@ -420,7 +436,7 @@ export class TransactionService{
                         message: 'transaction failed',
                         customer:fullRequestData.customer,
                         amount:fullRequestData.amount,
-                        status: 'declined',
+                        status: transaction.status,
                         currency:'GBP',
                         merchant:fullRequestData.merchant,
                         timestamp:fullRequestData.timestamp,
