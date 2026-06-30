@@ -281,8 +281,7 @@ export class IssuerService implements OnModuleInit {
     IssuerBankService(){
 
 
-        this.server.once('connection', (socket) => {
-
+        this.server.on('connection', (socket) => {
             socket.on('data', async (data) => {
 
               
@@ -495,6 +494,7 @@ export class IssuerService implements OnModuleInit {
     onModuleInit() {
         const net = require('net');
         this.server = net.createServer();
+        
         this.server.listen(5000, () => {
             console.log("[ISSUER SERVICE] ISO8583 server running on port 5000");
         });

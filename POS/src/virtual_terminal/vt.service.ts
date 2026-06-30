@@ -5,8 +5,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { Role } from "./entity/wt.entity";
 import { HttpService } from "@nestjs/axios";
-import { FullRequestDto } from "src/virtual_terminal/payment_draft/dto/request.data.dto";
-import { firstValueFrom } from "rxjs";
+
 
 
 

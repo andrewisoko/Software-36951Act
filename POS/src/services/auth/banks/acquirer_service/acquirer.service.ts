@@ -24,7 +24,7 @@ export class AcquirerService {
 
     async acquirerBankService( acqData:AcquirerRequest ){
 
-        console.log( 'starts here' )
+
         const fee = 0.74;
         const merchantNetAmount = acqData.amount - fee;
 

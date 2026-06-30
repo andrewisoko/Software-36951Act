@@ -8,6 +8,10 @@ import { LedgerService } from 'src/services/ledger.service/ledger.service';
 import { Transaction, TRANSACTION_STATUS } from 'src/services/orchestrator/entity/transaction.entity';
 import { Not, Repository } from 'typeorm';
 import { EncryptSecurity } from 'src/services/orchestrator/encryption/encrypt.security';
+import { LedgerSupport } from 'src/services/orchestrator/transaction.service';
+
+
+
 
 
 @Injectable()
@@ -20,6 +24,23 @@ export class SettlementService {
       private readonly ledgerService:LedgerService,
       private readonly encryption:EncryptSecurity,
     ){}
+
+  async ledgerSupport( ledgerProps: LedgerSupport){
+ 
+     await this.ledgerService.saveDoubleEntry(
+         {
+         account_id:ledgerProps.account_id,
+         transaction_id:ledgerProps.transaction_id,
+         amount:ledgerProps.amount,
+         currency:ledgerProps.currency,
+         eventTimestamp:ledgerProps.eventTimestamp,
+         status:ledgerProps.status,
+         maskedPan: ledgerProps.maskedPan
+ 
+         }
+ 
+      )
+    }
 
     async findTransactStatus(id:string){
 
@@ -49,8 +70,6 @@ export class SettlementService {
           }
         );
 
-        console.log('[SETTLEMENT SERVICE] transaction now settled')
-  
         transaction.status = TRANSACTION_STATUS.SETTLED
         await this.transactionRepository.save(transaction)
   
@@ -63,23 +82,25 @@ export class SettlementService {
         if( !ledgerSettled ){
 
             const timestamp = new Date(Date.now())
-            const rawPan = JSON.stringify(this.encryption.decrypt( transaction.pan_encrypt ??'[SETTLEMENT SERVICE] ]Not found' ));
+            const jsonPan = JSON.parse(transaction.pan_encrypt)
+            const rawPan = this.encryption.decrypt( jsonPan);
+          
             const maskPan:string = rawPan.toString().slice(-4).padStart(12,'*')
 
-
-             await this.ledgerService.saveDoubleEntry(
-              {
-                account_id:account.id,
-                transaction_id:transaction.id,
-                amount:account.hold,
-                currency:"GBP",
-                eventTimestamp:timestamp,
-                status:transaction.status,
+            this.ledgerSupport(
+                {
+                 account_id:account.id,
+                 transaction_id:transaction.id,
+                 amount:account.hold,
+                 currency:"GBP",
+                 eventTimestamp:timestamp,
+               status:transaction.status,
                 maskedPan: maskPan
 
               }
-
+              
             )
+
             console.log('[SETTLEMENT SERVICE] ledger status now settled')
 
           }

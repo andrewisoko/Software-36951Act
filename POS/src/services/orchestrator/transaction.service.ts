@@ -13,7 +13,7 @@ import { IssuerService } from "../auth/banks/issuer_service/issuer.service";
 import { Model } from "mongoose";
 import { AccountDocument } from "../account_service/document/account.doc";
 import { InjectModel } from "@nestjs/mongoose";
-import { Ledger } from "../ledger.service/entity/ledger.entity";
+import { LedgerService } from "../ledger.service/ledger.service";
 
 
 
@@ -59,6 +59,17 @@ export interface NotificationToDeviceApp {
     timestamp:string
 }
 
+export interface LedgerSupport {
+
+    account_id: string,
+    transaction_id: string,
+    amount: number,
+    currency: string,
+    eventTimestamp:Date,
+    status:string,
+    maskedPan: string
+}
+
 /////////////////////////////
 
 
@@ -70,7 +81,7 @@ export class TransactionService{
         @InjectModel('Account') private accountModel: Model<AccountDocument>,
         @InjectRepository(Terminal) private readonly terminalRepository:Repository<Terminal>,
         @InjectRepository(RuleEngine) private readonly ruleEngineRepository:Repository<RuleEngine>,
-        @InjectRepository(Ledger) private readonly ledgerRepository:Repository<Ledger>,
+        private readonly ledgerService: LedgerService,
 
 
         private readonly encryption:EncryptSecurity,
@@ -85,15 +96,7 @@ export class TransactionService{
     /*----------------------------*/
     /*----------------------------*/
 
-//    terminal:wbTerminal.id,
-//                 amount: transactionDetails.amount,
-//                 currency: transactionDetails.currency,
-//                 pan: transactionDetails.pan,
-//                 expiry: transactionDetails.expiry,
-//                 merchant: transactionDetails.merchant,
-//                 timestamp: transactionDetails.timestamp,
-//                 customer: transactionDetails.customer,
-//                 account: transactionDetails.account,
+
             
     async createTransaction({
         terminal,
@@ -173,11 +176,27 @@ export class TransactionService{
     }
     
    createStan(){
-        const randomNum = Math.floor(Math.random() * 1000000);
+        const randomNum = (Math.floor(Math.random() * 1000000) + 100);
         return randomNum
     };
 
-    
+ async ledgerSupport( ledgerProps: LedgerSupport){
+
+    await this.ledgerService.saveDoubleEntry(
+        {
+        account_id:ledgerProps.account_id,
+        transaction_id:ledgerProps.transaction_id,
+        amount:ledgerProps.amount,
+        currency:ledgerProps.currency,
+        eventTimestamp:ledgerProps.eventTimestamp,
+        status:ledgerProps.status,
+        maskedPan: ledgerProps.maskedPan
+
+        }
+
+    )
+
+}
     /*------------------------------*/
     /*------------------------------*/
     /*--------MAIN FUNCTION---------*/
@@ -358,73 +377,83 @@ export class TransactionService{
                 await sleep(500);
 
                 approvedTrn = await this.transactionRepository.findOne({ where:{ id:transaction.id } });
-                // if ( !approvedTrn ) throw new NotFoundException( "[TRANSACTION SERVICE] Transaction not found when calling issuer service" );
-                // console.log(approvedTrn.status)
+                if ( !approvedTrn ) throw new NotFoundException( "[TRANSACTION SERVICE] Transaction not found when calling issuer service" );
+        
                 if (approvedTrn && approvedTrn.status === TRANSACTION_STATUS.APPROVED ){
-                    try {
-                        
-                        const notificationService = await firstValueFrom(
-                            this.httpService.post('http://localhost:3002/notification/device-app-message',
-                                {
-                                    key:fullRequestData.key,
-                                    message: "Transaction details",
-                                    customer:fullRequestData.customer,
-                                    amount:fullRequestData.amount,
-                                    status: approvedTrn.status,
-                                    currency:fullRequestData.currency,
-                                    merchant:fullRequestData.merchant,
-                                    timestamp:fullRequestData.timestamp,
+        
+                try {
+                    
+                    const notificationService = await firstValueFrom(
+                        this.httpService.post('http://localhost:3002/notification/device-app-message',
+                            {
+                                key:fullRequestData.key,
+                                message: "Transaction details",
+                                customer:fullRequestData.customer,
+                                amount:fullRequestData.amount,
+                                status: approvedTrn.status,
+                                currency:fullRequestData.currency,
+                                merchant:fullRequestData.merchant,
+                                timestamp:fullRequestData.timestamp,
+                            },
+                            {
+                                headers: {
+                                Authorization: `Bearer ${terminalToken}`,
                                 },
-                                {
-                                    headers: {
-                                    Authorization: `Bearer ${terminalToken}`,
-                                    },
-                                },
-                                
-                            )
-                        )
-        
-                        //////////STOP ORCHESTRA IF ERROR//////////////////
-        
-                            if( notificationService.status !== 201 ){
-                                ///change ledger status to pending on both credit and debit///
-        
-                                transaction.status = TRANSACTION_STATUS.PENDING
-                                await this.transactionRepository.save(transaction)
-                                console.log( 'notification service error');
-                                break;
-                            } 
+                            },
                             
-        
-                        ///////////////////////////////////////////////////
-        
-            
-                        const settlementEngine = await firstValueFrom(
-                            this.httpService.post(
-                                'http://localhost:3002/settlement/engine-updates',
-                                {id:transaction.id},
-                                    {
-                                    headers: {
-                                    Authorization: `Bearer ${terminalToken}`,
-                                    },
-                                },
-            
-                            )
                         )
+                    )
+
+        
+                //////////STOP ORCHESTRA IF ERROR//////////////////
+        
+                    if( notificationService.status !== 201 ){
+                        
+                        const timestamp = new Date(Date.now())
+                        const jsonPan = JSON.parse(transaction.pan_encrypt)
+                        const rawPan = this.encryption.decrypt( jsonPan);
+                        const maskPan:string = rawPan.toString().slice(-4).padStart(12,'*')
+
+                        this.ledgerSupport({
+                            account_id:fullRequestData.account,
+                            transaction_id: transaction.id,
+                            amount: fullRequestData.amount,
+                            currency:'GBP',
+                            eventTimestamp: timestamp,
+                            status: 'pending',
+                            maskedPan:maskPan
+                        })
+
+                        
+                        transaction.status = TRANSACTION_STATUS.PENDING
+                        await this.transactionRepository.save(transaction)
+                        console.log( 'notification service error');
+                        break;
+                    } 
+
+                ///////////////////////////////////////////////////
+    
+                    const settlementEngine = await firstValueFrom(
+                        this.httpService.post(
+                            'http://localhost:3002/settlement/engine-updates',
+                            {id:transaction.id},
+                                {
+                                headers: {
+                                Authorization: `Bearer ${terminalToken}`,
+                                },
+                            },
+        
+                        )
+                    )
                     } catch (error) {
                        console.log('[TRANSACTION SERVICE] error after transaction approved', error)
                        break; 
                     }
         
-            
-                }break;
+                    break;
+                }
             }
-
-        //     if ( !approvedTrn ) throw new NotFoundException( "[TRANSACTION SERVICE] Transaction not found when calling issuer service" );
-
-        //     if( approvedTrn.status === TRANSACTION_STATUS.APPROVED){
-                
-        // }
+            
 
         } catch (error) {
             console.log(`[TRANSACTION SERVICE] Error at transaction orchestra: ${error}`)

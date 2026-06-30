@@ -30,7 +30,7 @@ export class NotificationService {
           }
         ),
       )
-      
+      console.log('[NOTIFICATION SERVICE] message sent to user through HTTP')
       // console.log('sending message to device app', {
       //   key: data.key,
       //   message: data.message,
