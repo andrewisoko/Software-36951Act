@@ -12,8 +12,6 @@ import { LedgerSupport } from 'src/services/orchestrator/transaction.service';
 
 
 
-
-
 @Injectable()
 export class SettlementService {
 
@@ -42,6 +40,22 @@ export class SettlementService {
       )
     }
 
+    async refund( account, transaction, amount ){
+
+         await this.accountModel.updateOne(
+          { _id: account._id },
+          { 
+            $inc: { ledger_balance: -amount, hold: -amount }
+          }
+        );
+
+        transaction.status = TRANSACTION_STATUS.REFUNDED
+        console.log( "[SETTLEMENT SERVICE ] account refunded")
+
+        return await this.transactionRepository.save(transaction)
+
+    }
+
     async findTransactStatus(id:string){
 
       const transaction = await this.transactionRepository.findOne({where:{id:id}});
@@ -57,7 +71,7 @@ export class SettlementService {
       if (!transaction) throw new Error ("[SETTLEMENT ENGINE] Transaction not found");
 
       const transactionStatus = await this.findTransactStatus(id);
-      if (transactionStatus === TRANSACTION_STATUS.APPROVED || transactionStatus === TRANSACTION_STATUS.REFUNDED ){
+      if (transactionStatus === TRANSACTION_STATUS.APPROVED ){
 
         const account = await this.accountModel.findOne({ _id: transaction.account });
         if (!account) throw new Error ("[SETTLEMENT ENGINE] Account not found");

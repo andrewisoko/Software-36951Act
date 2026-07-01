@@ -14,6 +14,8 @@ import { Model } from "mongoose";
 import { AccountDocument } from "../account_service/document/account.doc";
 import { InjectModel } from "@nestjs/mongoose";
 import { LedgerService } from "../ledger.service/ledger.service";
+import { SettlementService } from "../settlement/settlement_engine/settlement.service";
+
 
 
 
@@ -70,7 +72,7 @@ export interface LedgerSupport {
     maskedPan: string
 }
 
-/////////////////////////////
+///////////////////////////////////////////////////
 
 
 @Injectable()
@@ -86,7 +88,8 @@ export class TransactionService{
 
         private readonly encryption:EncryptSecurity,
         private readonly httpService: HttpService,
-        private readonly issuerService:IssuerService
+        private readonly issuerService:IssuerService,
+        private readonly settlementService: SettlementService
 
     ){}
 
@@ -414,20 +417,21 @@ export class TransactionService{
                         const rawPan = this.encryption.decrypt( jsonPan);
                         const maskPan:string = rawPan.toString().slice(-4).padStart(12,'*')
 
+                        const settlementRefundSupport = this.settlementService.refund(fullRequestData.account,transaction,fullRequestData.amount )
+
                         this.ledgerSupport({
                             account_id:fullRequestData.account,
                             transaction_id: transaction.id,
                             amount: fullRequestData.amount,
                             currency:'GBP',
                             eventTimestamp: timestamp,
-                            status: 'pending',
+                            status: 'refunded',
                             maskedPan:maskPan
                         })
-
                         
-                        transaction.status = TRANSACTION_STATUS.PENDING
-                        await this.transactionRepository.save(transaction)
+                        console.log( 'transaction status', transaction.status );
                         console.log( 'notification service error');
+
                         break;
                     } 
 

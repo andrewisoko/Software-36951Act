@@ -18,6 +18,8 @@ import { JwtModule } from "@nestjs/jwt";
 import { ConfigModule } from "@nestjs/config";
 import { MongooseModule } from "@nestjs/mongoose";
 import { AccountSchema } from "../account_service/document/account.doc";
+import { LedgerService } from "../ledger.service/ledger.service";
+import { SettlementService } from "../settlement/settlement_engine/settlement.service";
 
 
 @Module({
@@ -53,6 +55,8 @@ import { AccountSchema } from "../account_service/document/account.doc";
         TransactionService,
         EncryptSecurity,
         AccountService,
+        LedgerService,
+        SettlementService
     ],
 })
 

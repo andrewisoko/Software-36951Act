@@ -31,17 +31,6 @@ export class NotificationService {
         ),
       )
       console.log('[NOTIFICATION SERVICE] message sent to user through HTTP')
-      // console.log('sending message to device app', {
-      //   key: data.key,
-      //   message: data.message,
-      //   customer: data.customer,
-      //   amount: data.amount,
-      //   status: data.status,
-      //   currency: data.currency,
-      //   merchant: data.merchant,
-      //   timestamp: data.timestamp,
-      // });
-
       return response.data
     }
   }

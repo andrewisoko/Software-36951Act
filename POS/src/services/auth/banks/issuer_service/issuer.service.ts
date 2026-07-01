@@ -85,7 +85,7 @@ export class IssuerService implements OnModuleInit {
             );
             console.log("Hold released",amount)
         };
-    
+
     async settlementSupport (transactionId){
         return await this.settlementService.updates( transactionId )
     }
