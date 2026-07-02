@@ -17,7 +17,8 @@ export class NotificationController {
     async notification(
         @Body() dataDto: {
 
-        key:string,
+        key:string
+        trxId:string,
         message: string
         customer:string,
         amount:number,
@@ -26,10 +27,11 @@ export class NotificationController {
         merchant:string,
         timestamp:string
     }
-    ){ 
+    ){ dataDto
 
         return this.notificationService.sendMessage({
-            key:dataDto.key,
+            key: dataDto.key,
+            trxId:dataDto.trxId,
             message: dataDto.message,
             customer:dataDto.customer,
             amount: dataDto.amount,

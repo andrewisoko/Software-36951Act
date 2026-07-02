@@ -14,12 +14,8 @@ export class NotificationService {
   
     async sendMessage(data:NotificationToDeviceApp) 
     {
-
-      const response = await firstValueFrom(
-        this.HttpService.post(
-          "http://localhost:3100/transaction/outcome-device-app",
-          {
-            key:data.key,
+      console.log('payload',     {
+            trx_id:data.trxId,
             message: data.message,
             customer:data.customer,
             amount:data.amount,
@@ -27,10 +23,30 @@ export class NotificationService {
             currency:data.currency,
             merchant:data.merchant,
             timestamp:data.timestamp
-          }
-        ),
-      )
-      console.log('[NOTIFICATION SERVICE] message sent to user through HTTP')
-      return response.data
+          })
+
+   
+
+            const response = await firstValueFrom(
+              this.HttpService.post(
+                "http://localhost:3100/transactions/outcome-device-app",
+                {
+                  key: data.key,
+                  trxId:data.trxId,
+                  message: data.message,
+                  customer:data.customer,
+                  amount:data.amount,
+                  status:data.status,
+                  currency:data.currency,
+                  merchant:data.merchant,
+                  timestamp:data.timestamp
+                }
+              ),
+            )
+            console.log('[NOTIFICATION SERVICE] message sent to user through HTTP')
+            return response.data
+            
+        
+
     }
   }

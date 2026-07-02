@@ -41,16 +41,16 @@ export class PaymentDraftService {
     });
 
     if (!draft) throw new NotFoundException('Draft not found');
-    if (draft.status !== 'AWAITING_CARD_SCAN') {
-      throw new BadRequestException('Draft not scannable');
-    }
+    // if (draft.status !== 'AWAITING_CARD_SCAN') {
+    //   throw new BadRequestException('Draft not scannable');
+    // }
 
-    if (draft.expiresAt.getTime() < Date.now()) {
-      draft.status = 'EXPIRED';
-      await this.draftRepo.save(draft);
-      throw new BadRequestException('Draft expired');
-    }
-    console.log('succefully passed first step')
+    // if (draft.expiresAt.getTime() < Date.now()) {
+    //   draft.status = 'EXPIRED';
+    //   await this.draftRepo.save(draft);
+    //   throw new BadRequestException('Draft expired');
+    // }
+    // console.log('succefully passed first step')
 
     draft.status = 'PROCESSING';
     draft.cardToken = cardToken;

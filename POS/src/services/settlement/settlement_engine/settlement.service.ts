@@ -40,7 +40,10 @@ export class SettlementService {
       )
     }
 
-    async refund( account, transaction, amount ){
+    async refund( accountId, transaction, amount ){
+
+        const account = await this.accountModel.findOne({ _id: accountId });
+        if (!account) throw new Error ("[SETTLEMENT ENGINE] Account not found");
 
          await this.accountModel.updateOne(
           { _id: account._id },
@@ -49,7 +52,10 @@ export class SettlementService {
           }
         );
 
+        await account.save()
+
         transaction.status = TRANSACTION_STATUS.REFUNDED
+        
         console.log( "[SETTLEMENT SERVICE ] account refunded")
 
         return await this.transactionRepository.save(transaction)

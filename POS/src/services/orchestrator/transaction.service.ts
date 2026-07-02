@@ -52,6 +52,7 @@ export interface AcquirerRequest {
 export interface NotificationToDeviceApp {
 
     key: string,
+    trxId:string,
     message: string,
     customer:string,
     amount:number,
@@ -141,7 +142,6 @@ export class TransactionService{
             const encryptExpiryDate = JSON.stringify(this.encryption.encrypt(expiry ??'Not found'));
 
             const transaction = await this.transactionRepository.create({
-
                 currency:currency,
                 amount:amount,
                 merchant:merchant,
@@ -152,7 +152,9 @@ export class TransactionService{
                 expiryEncrypt:encryptExpiryDate,
 
                 })
+                
                 await this.transactionRepository.save(transaction)
+
 
                 await this.accountModel.updateOne(
                     { _id: account },
@@ -170,17 +172,18 @@ export class TransactionService{
         decision,
         transaction,
     ){
-        const ruleEngine = this.ruleEngineRepository.create({
-            decision:decision,
-            transaction:transaction
-        })
+            const ruleEngine = await this.ruleEngineRepository.create({
+                decision:decision,
+                transaction:transaction
+            })
+           
+                await this.ruleEngineRepository.save(ruleEngine)
 
-        return this.ruleEngineRepository.save(ruleEngine)
+                return "rule engine table saved"
     }
     
    createStan(){
-        const randomNum = (Math.floor(Math.random() * 1000000) + 100);
-        return randomNum
+        return Math.floor(100000 + Math.random() * 900000);
     };
 
  async ledgerSupport( ledgerProps: LedgerSupport){
@@ -219,7 +222,6 @@ export class TransactionService{
             /* data from gateway-api to transaction service first hop*/
     
             transaction = await this.createTransaction({
-                
                 terminal:fullRequestData.terminal,
                 amount:fullRequestData.amount,
                 currency:fullRequestData.currency,
@@ -233,7 +235,6 @@ export class TransactionService{
 
             // console.log('data', fullRequestData)
             if (! transaction) throw new Error ("[TRANSACTION SERVICE] failed to create transaction")
-
             const panEncryptParse = JSON.parse(transaction.pan_encrypt);
             terminalToken = transaction.terminal.acc_token
          
@@ -316,12 +317,20 @@ export class TransactionService{
             console.log("[TRANSACTION SERVICE ] rule engine:", ruleEngine.data);
 
             const decision = ruleEngine.data["action"]
-            const ruleEngineTable = await this.createRuleEngineTable(decision,transaction);
+            let ruleEngineTable: string;
+            try {
+                ruleEngineTable = await this.createRuleEngineTable(decision, transaction);
+            } catch (error) {
+                console.log(`[TRANSACTION SERVICE] Failed to save rule engine table: ${error}`);
+                transaction.status = TRANSACTION_STATUS.DECLINED;
+                await this.transactionRepository.save(transaction);
+                return 'rule engine table error';
+            }
             transaction.rule_engine = ruleEngineTable;
 
 
         //////////STOP ORCHESTRA IF ERROR//////////////////
-
+          
         
                 if( ruleEngine.status !== 201 ){
                 transaction.status = TRANSACTION_STATUS.DECLINED
@@ -355,6 +364,7 @@ export class TransactionService{
                 )
             )
 
+
         //////////STOP ORCHESTRA IF ERROR//////////////////
 
                 if( acquirerService.status !== 201 ){
@@ -369,12 +379,10 @@ export class TransactionService{
             
             // console.log(acquirerService.status)
 
-            const issuerService = this.issuerService.IssuerBankService();
-
-          
+            // Call issuer service (listeners only set up once due to guard flag)
+            this.issuerService.IssuerBankService();
 
             let approvedTrn: Transaction | null = null;
-
 
             for (let i = 0; i < 20; i++) {
                 await sleep(500);
@@ -390,6 +398,7 @@ export class TransactionService{
                         this.httpService.post('http://localhost:3002/notification/device-app-message',
                             {
                                 key:fullRequestData.key,
+                                trxId: transaction.id,
                                 message: "Transaction details",
                                 customer:fullRequestData.customer,
                                 amount:fullRequestData.amount,
@@ -407,12 +416,24 @@ export class TransactionService{
                         )
                     )
 
+    
+                    const settlementEngine = await firstValueFrom(
+                        this.httpService.post(
+                            'http://localhost:3002/settlement/engine-updates',
+                            {id:transaction.id},
+                                {
+                                headers: {
+                                Authorization: `Bearer ${terminalToken}`,
+                                },
+                            },
         
-                //////////STOP ORCHESTRA IF ERROR//////////////////
-        
-                    if( notificationService.status !== 201 ){
+                        )
+                    )
+                    } catch (error) {
                         
-                        const timestamp = new Date(Date.now())
+                       console.log('[TRANSACTION SERVICE] error after transaction approved')
+
+                       const timestamp = new Date(Date.now())
                         const jsonPan = JSON.parse(transaction.pan_encrypt)
                         const rawPan = this.encryption.decrypt( jsonPan);
                         const maskPan:string = rawPan.toString().slice(-4).padStart(12,'*')
@@ -429,29 +450,7 @@ export class TransactionService{
                             maskedPan:maskPan
                         })
                         
-                        console.log( 'transaction status', transaction.status );
-                        console.log( 'notification service error');
-
-                        break;
-                    } 
-
-                ///////////////////////////////////////////////////
-    
-                    const settlementEngine = await firstValueFrom(
-                        this.httpService.post(
-                            'http://localhost:3002/settlement/engine-updates',
-                            {id:transaction.id},
-                                {
-                                headers: {
-                                Authorization: `Bearer ${terminalToken}`,
-                                },
-                            },
-        
-                        )
-                    )
-                    } catch (error) {
-                       console.log('[TRANSACTION SERVICE] error after transaction approved', error)
-                       break; 
+                    //    break; 
                     }
         
                     break;
@@ -466,6 +465,7 @@ export class TransactionService{
                 this.httpService.post('http://localhost:3002/notification/device-app-message',
                     {
                         key:fullRequestData.key,
+                        trxId: transaction.id,
                         message: 'transaction failed',
                         customer:fullRequestData.customer,
                         amount:fullRequestData.amount,

@@ -22,6 +22,7 @@ import { SettlementService } from 'src/services/settlement/settlement_engine/set
 export class IssuerService implements OnModuleInit {
 
     private server: any;
+    private isInitialized: boolean = false;  // Guard flag to prevent duplicate listeners
 
     constructor(
         @InjectRepository(Transaction) private readonly transactionRepository:Repository<Transaction>,
@@ -280,6 +281,11 @@ export class IssuerService implements OnModuleInit {
 
     IssuerBankService(){
 
+        // Guard: Only set up listeners once
+        if (this.isInitialized) {
+            return;
+        }
+        this.isInitialized = true;
 
         this.server.on('connection', (socket) => {
             socket.on('data', async (data) => {
@@ -498,6 +504,9 @@ export class IssuerService implements OnModuleInit {
         this.server.listen(5000, () => {
             console.log("[ISSUER SERVICE] ISO8583 server running on port 5000");
         });
+
+        // Set up event listeners only once during initialization
+        this.IssuerBankService();
     }
 
 }
