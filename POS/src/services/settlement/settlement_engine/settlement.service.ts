@@ -52,8 +52,6 @@ export class SettlementService {
           }
         );
 
-        await account.save()
-
         transaction.status = TRANSACTION_STATUS.REFUNDED
         
         console.log( "[SETTLEMENT SERVICE ] account refunded")

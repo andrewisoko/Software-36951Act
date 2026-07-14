@@ -19,8 +19,7 @@ export class VirtualTerminalService{
     ){}
 
     generateSerialNum(){
-        const randomNum = (Math.floor(Math.random() * 100000000) + 100);
-        return randomNum
+         return Math.floor(10000000 + Math.random() * 90000000);
       }
 
     generateSignature(){
