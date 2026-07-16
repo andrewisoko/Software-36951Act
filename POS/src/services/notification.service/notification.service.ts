@@ -22,7 +22,7 @@ export class NotificationService {
             status:data.status,
             currency:data.currency,
             merchant:data.merchant,
-            timestamp:data.timestamp
+            timestamp:data.timestamp,
           })
 
    
@@ -39,7 +39,7 @@ export class NotificationService {
                   status:data.status,
                   currency:data.currency,
                   merchant:data.merchant,
-                  timestamp:data.timestamp
+                  timestamp:data.timestamp,
                 }
               ),
             )

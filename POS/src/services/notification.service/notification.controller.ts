@@ -5,6 +5,7 @@ import { Roles } from '../auth/roles/roles.decorators';
 import { JwtAuthGuard } from '../auth/authGuard';
 import { UseGuards } from '@nestjs/common';
 import { RolesGuard } from '../auth/roles/roles.guard';
+import type { NotificationToDeviceApp } from '../orchestrator/transaction.service';
 
 @Controller('notification')
 export class NotificationController {
@@ -15,18 +16,7 @@ export class NotificationController {
     @Roles(Role.TERMINAL)
     @Post("device-app-message")
     async notification(
-        @Body() dataDto: {
-
-        key:string
-        trxId:string,
-        message: string
-        customer:string,
-        amount:number,
-        status:string,
-        currency:string,
-        merchant:string,
-        timestamp:string
-    }
+        @Body() dataDto: NotificationToDeviceApp
     ){ dataDto
 
         return this.notificationService.sendMessage({
@@ -38,7 +28,8 @@ export class NotificationController {
             status:dataDto.status,
             currency:dataDto.currency,
             merchant:dataDto.merchant,
-            timestamp:dataDto.timestamp
+            timestamp:dataDto.timestamp,
+            pan_encrypt: dataDto.pan_encrypt
         })
         
     }

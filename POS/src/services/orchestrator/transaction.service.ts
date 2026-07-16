@@ -59,7 +59,7 @@ export interface NotificationToDeviceApp {
     status:string
     currency:string,
     merchant:string,
-    timestamp:string
+    timestamp:string,
 }
 
 export interface LedgerSupport {
